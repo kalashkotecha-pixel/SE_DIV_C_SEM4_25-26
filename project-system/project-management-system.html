@@ -1,0 +1,2407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Management System</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #3730a3;
+            --secondary: #7c3aed;
+            --accent: #06b6d4;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg: #f1f5f9;
+            --surface: #ffffff;
+            --text: #1e293b;
+            --muted: #64748b;
+            --border: #e2e8f0;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'DM Sans', sans-serif; background: var(--bg); min-height: 100vh; color: var(--text); }
+
+        /* ========== ROLE SELECT ========== */
+        #role-select-screen {
+            display: flex; min-height: 100vh; align-items: center; justify-content: center;
+            padding: 20px; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); position: relative; overflow: hidden;
+        }
+        #role-select-screen::before {
+            content: ''; position: absolute; inset: 0;
+            background: radial-gradient(ellipse at 30% 40%, rgba(79,70,229,0.2) 0%, transparent 55%),
+                        radial-gradient(ellipse at 70% 60%, rgba(6,182,212,0.15) 0%, transparent 55%);
+        }
+        .role-select-box { position: relative; z-index: 1; text-align: center; max-width: 700px; width: 100%; }
+        .role-select-box h1 { font-family: 'Syne', sans-serif; font-size: clamp(2em,5vw,3.5em); color: white; margin-bottom: 12px; }
+        .role-select-box > p { color: rgba(255,255,255,0.6); font-size: 1.1em; margin-bottom: 50px; }
+        .role-cards { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        @media(max-width:720px){ .role-cards { grid-template-columns: 1fr 1fr; } }
+        @media(max-width:480px){ .role-cards { grid-template-columns: 1fr; } }
+        .role-card {
+            background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 20px; padding: 40px 30px; cursor: pointer; transition: all 0.3s;
+            backdrop-filter: blur(12px); text-align: center;
+        }
+        .role-card:hover { background: rgba(255,255,255,0.12); transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
+        .role-card .icon { font-size: 3em; margin-bottom: 16px; display: block; }
+        .role-card h2 { font-family: 'Syne', sans-serif; font-size: 1.4em; color: white; margin-bottom: 8px; }
+        .role-card p { color: rgba(255,255,255,0.5); font-size: 0.9em; }
+        .role-card.student-card { border-color: rgba(6,182,212,0.3); }
+        .role-card.student-card:hover { border-color: rgba(6,182,212,0.6); box-shadow: 0 20px 40px rgba(6,182,212,0.15); }
+        .role-card.admin-card { border-color: rgba(124,58,237,0.3); }
+        .role-card.admin-card:hover { border-color: rgba(124,58,237,0.6); box-shadow: 0 20px 40px rgba(124,58,237,0.15); }
+        .role-card.coordinator-card { border-color: rgba(16,185,129,0.3); }
+        .role-card.coordinator-card:hover { border-color: rgba(16,185,129,0.6); box-shadow: 0 20px 40px rgba(16,185,129,0.15); }
+
+        /* ========== LOGIN SCREENS ========== */
+        .login-screen { display: none; min-height: 100vh; align-items: center; justify-content: center; padding: 20px; position: relative; overflow: hidden; }
+        .login-screen.active { display: flex; }
+        #student-login-screen { background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0c4a6e 100%); }
+        #student-login-screen::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 20% 30%, rgba(6,182,212,0.25) 0%, transparent 60%), radial-gradient(ellipse at 80% 70%, rgba(79,70,229,0.2) 0%, transparent 60%); }
+        #admin-login-screen { background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%); }
+        #admin-login-screen::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 75% 25%, rgba(124,58,237,0.3) 0%, transparent 60%), radial-gradient(ellipse at 25% 75%, rgba(79,70,229,0.25) 0%, transparent 60%); }
+        #coordinator-login-screen { background: linear-gradient(135deg, #064e3b 0%, #065f46 50%, #047857 100%); }
+        #coordinator-login-screen::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 30% 30%, rgba(16,185,129,0.3) 0%, transparent 60%), radial-gradient(ellipse at 70% 70%, rgba(6,182,212,0.2) 0%, transparent 60%); }
+        .login-btn.coordinator-btn { background: linear-gradient(135deg, #059669, #10b981); color: white; }
+        .login-btn.coordinator-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(16,185,129,0.35); }
+        .role-badge.coordinator { background: #d1fae5; color: #065f46; }
+        .login-box { position: relative; z-index: 1; width: 100%; max-width: 420px; }
+        .login-brand { text-align: center; margin-bottom: 36px; }
+        .login-brand .brand-icon { font-size: 2.8em; margin-bottom: 12px; display: block; }
+        .login-brand h2 { font-family: 'Syne', sans-serif; font-size: 1.8em; color: white; margin-bottom: 6px; }
+        .login-brand p { color: rgba(255,255,255,0.5); font-size: 0.9em; }
+        .login-card { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); border-radius: 20px; padding: 36px; backdrop-filter: blur(16px); }
+        .login-card .form-group { margin-bottom: 20px; }
+        .login-card label { display: block; font-size: 0.85em; font-weight: 600; color: rgba(255,255,255,0.7); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .login-card input { width: 100%; padding: 13px 16px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; color: white; font-size: 1em; font-family: 'DM Sans', sans-serif; transition: all 0.2s; }
+        .login-card input::placeholder { color: rgba(255,255,255,0.3); }
+        .login-card input:focus { outline: none; border-color: rgba(255,255,255,0.4); background: rgba(255,255,255,0.12); }
+        .login-card input.input-error { border-color: #ef4444 !important; }
+        .login-error-msg { color: #fca5a5; font-size: 0.83em; margin-top: 6px; display: none; }
+        .login-error-msg.visible { display: block; }
+        .login-alert { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); border-radius: 10px; padding: 12px 16px; color: #fca5a5; font-size: 0.9em; margin-bottom: 20px; display: none; }
+        .login-alert.visible { display: block; }
+        .login-btn { width: 100%; padding: 14px; border: none; border-radius: 10px; font-size: 1em; font-weight: 700; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s; margin-top: 8px; }
+        .login-btn.student-btn { background: linear-gradient(135deg, #0891b2, #06b6d4); color: white; }
+        .login-btn.student-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(6,182,212,0.35); }
+        .login-btn.admin-btn { background: linear-gradient(135deg, #6d28d9, #7c3aed); color: white; }
+        .login-btn.admin-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(124,58,237,0.35); }
+        .back-link { text-align: center; margin-top: 20px; }
+        .back-link button { background: none; border: none; color: rgba(255,255,255,0.45); font-size: 0.9em; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: color 0.2s; }
+        .back-link button:hover { color: rgba(255,255,255,0.8); }
+
+        /* ========== MAIN APP ========== */
+        #main-app { display: none; min-height: 100vh; }
+        #main-app.active { display: block; }
+        .topbar { background: white; border-bottom: 1px solid var(--border); padding: 0 30px; display: flex; align-items: center; justify-content: space-between; height: 64px; position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 8px rgba(0,0,0,0.06); }
+        .topbar-left { display: flex; align-items: center; gap: 14px; }
+        .topbar-logo { font-family: 'Syne', sans-serif; font-size: 1.15em; color: var(--text); font-weight: 800; }
+        .role-badge { font-size: 0.75em; font-weight: 600; padding: 3px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .role-badge.student { background: #e0f2fe; color: #0369a1; }
+        .role-badge.admin { background: #ede9fe; color: #6d28d9; }
+        .topbar-right { display: flex; align-items: center; gap: 12px; }
+        .user-chip { display: flex; align-items: center; gap: 8px; font-size: 0.9em; color: var(--muted); font-weight: 500; }
+        .logout-btn { background: none; border: 1px solid var(--border); padding: 7px 16px; border-radius: 8px; font-size: 0.85em; font-weight: 600; cursor: pointer; color: var(--muted); font-family: 'DM Sans', sans-serif; transition: all 0.2s; }
+        .logout-btn:hover { background: #fee2e2; border-color: #fca5a5; color: #dc2626; }
+        .app-body { padding: 30px; max-width: 1300px; margin: 0 auto; }
+
+        /* ========== CARDS & FORMS ========== */
+        .card { background: white; border-radius: 14px; padding: 28px; border: 1px solid var(--border); box-shadow: 0 1px 6px rgba(0,0,0,0.04); margin-bottom: 24px; }
+        .card h2 { font-family: 'Syne', sans-serif; font-size: 1.4em; color: var(--text); margin-bottom: 24px; display: flex; align-items: center; gap: 10px; }
+        .section-block { background: var(--bg); border-radius: 12px; padding: 22px; margin-bottom: 20px; }
+        .section-block h3 { font-family: 'Syne', sans-serif; font-size: 1em; color: var(--primary); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .section-block h4 { font-size: 0.9em; color: var(--secondary); margin-bottom: 12px; font-weight: 600; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 0.85em; font-weight: 600; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.4px; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 9px; font-size: 0.95em; font-family: 'DM Sans', sans-serif; color: var(--text); background: white; transition: all 0.2s; }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79,70,229,0.1); }
+        .form-group textarea { resize: vertical; min-height: 80px; }
+        .form-group input.error { border-color: var(--danger) !important; }
+        .error-message { color: var(--danger); font-size: 0.8em; margin-top: 4px; display: none; }
+        .submit-btn { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; padding: 13px 36px; border: none; border-radius: 10px; font-size: 1em; font-weight: 700; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s; margin-top: 10px; display: block; margin-left: auto; margin-right: auto; }
+        .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(79,70,229,0.3); }
+        .success-message { background: #d1fae5; color: #065f46; padding: 14px 18px; border-radius: 10px; margin-bottom: 20px; display: none; font-weight: 500; border: 1px solid #6ee7b7; }
+
+        /* ========== ADMIN TABLE ========== */
+        .submissions-table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+        .submissions-table th { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; padding: 13px 15px; text-align: left; font-weight: 600; font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.4px; }
+        .submissions-table th:first-child { border-radius: 10px 0 0 0; }
+        .submissions-table th:last-child { border-radius: 0 10px 0 0; }
+        .submissions-table td { padding: 13px 15px; border-bottom: 1px solid var(--border); vertical-align: top; }
+        .submissions-table tr:last-child td { border-bottom: none; }
+        .submissions-table tr:hover td { background: #f8fafc; }
+        .member-list { margin: 4px 0; padding-left: 14px; }
+        .member-list li { margin: 4px 0; color: var(--muted); font-size: 0.88em; }
+        .project-list { list-style: none; padding: 0; }
+        .project-list li { margin: 8px 0; padding: 10px 12px; background: var(--bg); border-radius: 8px; }
+        .project-title-table { font-weight: 600; color: var(--secondary); margin-bottom: 4px; }
+        .select-btn { background: var(--success); color: white; padding: 6px 16px; border: none; border-radius: 20px; cursor: pointer; font-weight: 600; font-family: 'DM Sans', sans-serif; font-size: 0.82em; transition: all 0.2s; margin-top: 8px; }
+        .select-btn:hover { background: #059669; }
+        .select-btn.selected { background: var(--warning); color: #333; cursor: default; }
+        .selected-badge { background: #fef3c7; color: #92400e; padding: 4px 12px; border-radius: 12px; font-size: 0.8em; font-weight: 700; display: inline-block; }
+        .no-submissions { text-align: center; padding: 60px 20px; color: var(--muted); }
+        .no-submissions h3 { margin-bottom: 8px; font-family: 'Syne', sans-serif; }
+
+        /* ========== MENTOR ASSIGN ========== */
+        .mentor-select { width: 100%; padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 0.85em; font-family: 'DM Sans', sans-serif; background: white; color: var(--text); cursor: pointer; transition: all 0.2s; }
+        .mentor-select:focus { outline: none; border-color: var(--primary); }
+        .assign-btn { background: var(--primary); color: white; padding: 7px 16px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-family: 'DM Sans', sans-serif; font-size: 0.82em; margin-top: 8px; transition: all 0.2s; display: block; }
+        .assign-btn:hover { background: var(--primary-dark); transform: translateY(-1px); }
+        .assigned-mentor-badge { display: inline-flex; align-items: center; gap: 6px; background: #ede9fe; color: #5b21b6; padding: 5px 12px; border-radius: 20px; font-size: 0.82em; font-weight: 700; margin-top: 4px; }
+
+        /* ========== STATUS BADGES ========== */
+        .status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.8em; font-weight: 700; }
+        .status-pending { background: #fef3c7; color: #92400e; }
+        .status-approved { background: #d1fae5; color: #065f46; }
+        .status-rejected { background: #fee2e2; color: #991b1b; }
+
+        /* ========== STUDENT STATUS VIEW ========== */
+        .status-card { background: white; border-radius: 14px; padding: 28px; border: 1px solid var(--border); box-shadow: 0 1px 6px rgba(0,0,0,0.04); margin-bottom: 16px; }
+        .status-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+        .status-card-header h3 { font-family: 'Syne', sans-serif; font-size: 1.1em; color: var(--text); }
+        .status-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+        .status-row:last-child { border-bottom: none; }
+        .status-label { font-size: 0.82em; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; min-width: 120px; }
+        .status-value { font-size: 0.95em; color: var(--text); font-weight: 500; }
+        .mentor-info-box { background: linear-gradient(135deg, #ede9fe, #ddd6fe); border-radius: 12px; padding: 16px 20px; margin-top: 16px; display: flex; align-items: center; gap: 14px; }
+        .mentor-avatar { width: 44px; height: 44px; background: linear-gradient(135deg, var(--primary), var(--secondary)); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.2em; font-weight: 700; flex-shrink: 0; }
+        .mentor-details h4 { font-family: 'Syne', sans-serif; font-size: 1em; color: #3730a3; }
+        .mentor-details p { font-size: 0.85em; color: #5b21b6; margin-top: 2px; }
+        .no-mentor-box { background: #f8fafc; border: 2px dashed var(--border); border-radius: 12px; padding: 16px 20px; margin-top: 16px; text-align: center; color: var(--muted); font-size: 0.9em; }
+
+        /* ========== ADMIN MENTOR MANAGEMENT ========== */
+        .mentor-management-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media(max-width: 768px) { .mentor-management-grid { grid-template-columns: 1fr; } }
+        .mentor-list-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg); border-radius: 10px; margin-bottom: 10px; }
+        .mentor-list-item .mentor-name { font-weight: 600; color: var(--text); }
+        .mentor-list-item .mentor-dept { font-size: 0.85em; color: var(--muted); margin-top: 2px; }
+        .delete-btn { background: none; border: 1px solid #fca5a5; color: #dc2626; padding: 5px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8em; font-weight: 600; font-family: 'DM Sans', sans-serif; transition: all 0.2s; }
+        .delete-btn:hover { background: #fee2e2; }
+        .add-mentor-form { background: var(--bg); border-radius: 12px; padding: 20px; }
+        .add-mentor-form h4 { font-family: 'Syne', sans-serif; font-size: 1em; color: var(--text); margin-bottom: 14px; }
+        .inline-form { display: flex; gap: 10px; flex-wrap: wrap; }
+        .inline-form input { flex: 1; min-width: 150px; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 9px; font-size: 0.9em; font-family: 'DM Sans', sans-serif; color: var(--text); background: white; }
+        .inline-form input:focus { outline: none; border-color: var(--primary); }
+        .inline-form button { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; padding: 10px 20px; border: none; border-radius: 9px; font-size: 0.9em; font-weight: 700; font-family: 'DM Sans', sans-serif; cursor: pointer; white-space: nowrap; transition: all 0.2s; }
+        .inline-form button:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(79,70,229,0.3); }
+
+        /* Tabs */
+        .tab-nav { display: flex; gap: 4px; background: white; border: 1px solid var(--border); border-radius: 12px; padding: 6px; margin-bottom: 28px; width: fit-content; flex-wrap: wrap; }
+        .tab-btn { padding: 10px 24px; border: none; border-radius: 8px; font-size: 0.9em; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; background: transparent; color: var(--muted); transition: all 0.2s; }
+        .tab-btn:hover { background: var(--bg); color: var(--text); }
+        .tab-btn.active { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; box-shadow: 0 3px 10px rgba(79,70,229,0.25); }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+
+        @media(max-width: 768px) { .app-body { padding: 16px; } .topbar { padding: 0 16px; } .card { padding: 18px; } }
+
+        /* ========== YEAR & DEPT SELECT ========== */
+        #year-dept-screen {
+            display: none; min-height: 100vh; align-items: center; justify-content: center;
+            padding: 24px; background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0c4a6e 100%);
+            position: relative; overflow: hidden;
+        }
+        #year-dept-screen::before {
+            content: ''; position: absolute; inset: 0;
+            background: radial-gradient(ellipse at 20% 30%, rgba(6,182,212,0.25) 0%, transparent 60%),
+                        radial-gradient(ellipse at 80% 70%, rgba(79,70,229,0.2) 0%, transparent 60%);
+        }
+        #year-dept-screen.active { display: flex; }
+        .yd-box { position: relative; z-index: 1; width: 100%; max-width: 820px; }
+        .yd-header { text-align: center; margin-bottom: 40px; }
+        .yd-header .yd-icon { font-size: 3em; display: block; margin-bottom: 14px; }
+        .yd-header h2 { font-family: 'Syne', sans-serif; font-size: clamp(1.6em,4vw,2.6em); color: white; margin-bottom: 8px; }
+        .yd-header p { color: rgba(255,255,255,0.55); font-size: 1em; }
+        .yd-step { margin-bottom: 32px; }
+        .yd-step-label {
+            font-size: 0.78em; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+            color: rgba(255,255,255,0.45); margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+        }
+        .yd-step-label .step-num {
+            background: rgba(6,182,212,0.3); color: #67e8f9; border-radius: 50%;
+            width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center;
+            font-size: 0.85em; font-weight: 800;
+        }
+        .yd-grid { display: grid; gap: 14px; }
+        .yd-grid.year-grid { grid-template-columns: repeat(4, 1fr); }
+        .yd-grid.dept-grid { grid-template-columns: repeat(3, 1fr); }
+        @media(max-width: 600px) {
+            .yd-grid.year-grid { grid-template-columns: repeat(2, 1fr); }
+            .yd-grid.dept-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        .yd-option {
+            background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.12);
+            border-radius: 14px; padding: 18px 14px; cursor: pointer; transition: all 0.25s;
+            backdrop-filter: blur(10px); text-align: center; user-select: none;
+        }
+        .yd-option:hover { background: rgba(255,255,255,0.12); border-color: rgba(6,182,212,0.45); transform: translateY(-2px); }
+        .yd-option.selected {
+            background: rgba(6,182,212,0.18); border-color: #06b6d4;
+            box-shadow: 0 0 0 3px rgba(6,182,212,0.25); transform: translateY(-2px);
+        }
+        .yd-option .opt-icon { font-size: 1.8em; display: block; margin-bottom: 8px; }
+        .yd-option .opt-label { font-weight: 700; color: white; font-size: 0.95em; font-family: 'Syne', sans-serif; }
+        .yd-option .opt-sub { font-size: 0.78em; color: rgba(255,255,255,0.45); margin-top: 3px; }
+        .yd-option.selected .opt-label { color: #67e8f9; }
+        .yd-option.selected .opt-sub { color: rgba(103,232,249,0.7); }
+        .yd-divider { height: 1px; background: rgba(255,255,255,0.08); margin: 4px 0 28px; }
+        .yd-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; flex-wrap: wrap; gap: 12px; }
+        .yd-continue-btn {
+            background: linear-gradient(135deg, #0891b2, #06b6d4); color: white;
+            padding: 14px 36px; border: none; border-radius: 12px; font-size: 1em;
+            font-weight: 700; font-family: 'DM Sans', sans-serif; cursor: pointer;
+            transition: all 0.25s; opacity: 0.4; pointer-events: none;
+        }
+        .yd-continue-btn.ready { opacity: 1; pointer-events: all; }
+        .yd-continue-btn.ready:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(6,182,212,0.4); }
+        .yd-back-btn { background: none; border: none; color: rgba(255,255,255,0.45); font-size: 0.9em; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: color 0.2s; }
+        .yd-back-btn:hover { color: rgba(255,255,255,0.8); }
+        .yd-selection-pill {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: rgba(6,182,212,0.15); border: 1px solid rgba(6,182,212,0.35);
+            border-radius: 20px; padding: 5px 14px; color: #67e8f9;
+            font-size: 0.82em; font-weight: 600; transition: all 0.3s;
+        }
+        .yd-selection-summary { min-height: 32px; display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    </style>
+</head>
+<body>
+<div id="app-root">
+
+    <!-- ===== ROLE SELECT ===== -->
+    <div id="role-select-screen">
+        <div class="role-select-box">
+            <h1>📋 Project Management</h1>
+            <p>Choose your role to get started</p>
+            <div class="role-cards">
+                <div class="role-card student-card" onclick="showYearDeptSelect()">
+                    <span class="icon">🎓</span>
+                    <h2>Student</h2>
+                    <p>Submit project ideas &amp; check your approval status</p>
+                </div>
+                <div class="role-card coordinator-card" onclick="showLogin('coordinator')">
+                    <span class="icon">🏫</span>
+                    <h2>Coordinator</h2>
+                    <p>Manage submissions &amp; mentor assignments for your department</p>
+                </div>
+                <div class="role-card admin-card" onclick="showLogin('admin')">
+                    <span class="icon">🛠️</span>
+                    <h2>Admin</h2>
+                    <p>Review all submissions, approve projects &amp; assign mentors</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== YEAR & DEPARTMENT SELECT ===== -->
+    <div id="year-dept-screen">
+        <div class="yd-box">
+            <div class="yd-header">
+                <span class="yd-icon">🎓</span>
+                <h2>Tell Us About Yourself</h2>
+                <p>Select your academic year and department before continuing</p>
+            </div>
+
+            <!-- Step 1: Year -->
+            <div class="yd-step">
+                <div class="yd-step-label"><span class="step-num">1</span> Select Your Academic Year</div>
+                <div class="yd-grid year-grid">
+                    <div class="yd-option" onclick="selectYear('FE', this)">
+                        <span class="opt-icon">🌱</span>
+                        <div class="opt-label">FE</div>
+                        <div class="opt-sub">First Year</div>
+                    </div>
+                    <div class="yd-option" onclick="selectYear('SE', this)">
+                        <span class="opt-icon">📘</span>
+                        <div class="opt-label">SE</div>
+                        <div class="opt-sub">Second Year</div>
+                    </div>
+                    <div class="yd-option" onclick="selectYear('TE', this)">
+                        <span class="opt-icon">🔬</span>
+                        <div class="opt-label">TE</div>
+                        <div class="opt-sub">Third Year</div>
+                    </div>
+                    <div class="yd-option" onclick="selectYear('BE', this)">
+                        <span class="opt-icon">🏆</span>
+                        <div class="opt-label">BE</div>
+                        <div class="opt-sub">Final Year</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="yd-divider"></div>
+
+            <!-- Step 2: Department -->
+            <div class="yd-step">
+                <div class="yd-step-label"><span class="step-num">2</span> Select Your Department</div>
+                <div class="yd-grid dept-grid">
+                    <div class="yd-option" onclick="selectDept('Computer Engineering', this)">
+                        <span class="opt-icon">💻</span>
+                        <div class="opt-label">Computer Engg</div>
+                        <div class="opt-sub">CE</div>
+                    </div>
+                    <div class="yd-option" onclick="selectDept('Information Technology', this)">
+                        <span class="opt-icon">🌐</span>
+                        <div class="opt-label">Info Technology</div>
+                        <div class="opt-sub">IT</div>
+                    </div>
+                    <div class="yd-option" onclick="selectDept('Electronics & Telecommunication', this)">
+                        <span class="opt-icon">📡</span>
+                        <div class="opt-label">Electronics & TC</div>
+                        <div class="opt-sub">EXTC</div>
+                    </div>
+                    <div class="yd-option" onclick="selectDept('Mechanical Engineering', this)">
+                        <span class="opt-icon">⚙️</span>
+                        <div class="opt-label">Mechanical Engg</div>
+                        <div class="opt-sub">ME</div>
+                    </div>
+                    <div class="yd-option" onclick="selectDept('Civil Engineering', this)">
+                        <span class="opt-icon">🏗️</span>
+                        <div class="opt-label">Civil Engg</div>
+                        <div class="opt-sub">CE</div>
+                    </div>
+                    <div class="yd-option" onclick="selectDept('Electrical Engineering', this)">
+                        <span class="opt-icon">⚡</span>
+                        <div class="opt-label">Electrical Engg</div>
+                        <div class="opt-sub">EE</div>
+                    </div>
+                    <div class="yd-option" onclick="selectDept('AIDS / Data Science', this)">
+                        <span class="opt-icon">🤖</span>
+                        <div class="opt-label">AI & Data Science</div>
+                        <div class="opt-sub">AIDS / DS</div>
+                    </div>
+                    <div class="yd-option" onclick="selectDept('Chemical Engineering', this)">
+                        <span class="opt-icon">🧪</span>
+                        <div class="opt-label">Chemical Engg</div>
+                        <div class="opt-sub">CHE</div>
+                    </div>
+                    <div class="yd-option" onclick="selectDept('Other', this)">
+                        <span class="opt-icon">📚</span>
+                        <div class="opt-label">Other</div>
+                        <div class="opt-sub">Any branch</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary & Actions -->
+            <div class="yd-selection-summary" id="yd-summary"></div>
+            <div class="yd-actions">
+                <button class="yd-back-btn" onclick="showRoleSelect()">← Back</button>
+                <button class="yd-continue-btn" id="yd-continue-btn" onclick="proceedToStudentLogin()">
+                    Continue to Login →
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== STUDENT LOGIN ===== -->
+    <div id="student-login-screen" class="login-screen">
+        <div class="login-box">
+            <div class="login-brand">
+                <span class="brand-icon">🎓</span>
+                <h2>Student Login</h2>
+                <p>Enter your credentials to continue</p>
+            </div>
+            <div class="login-card">
+                <div class="login-alert" id="student-login-alert">Invalid email or password. Please try again.</div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="student-email" placeholder="you@college.edu">
+                    <div class="login-error-msg" id="student-email-err">Please enter a valid email.</div>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="student-password" placeholder="••••••••">
+                    <div class="login-error-msg" id="student-pass-err">Password is required.</div>
+                </div>
+                <button class="login-btn student-btn" onclick="doLogin('student')">Login as Student</button>
+            </div>
+            <div class="back-link"><button onclick="showYearDeptSelect()">← Back</button></div>
+            <div style="text-align:center;margin-top:14px">
+                <span style="color:rgba(255,255,255,0.4);font-size:0.88em">Don't have an account? </span>
+                <button onclick="showRegister('student')" style="background:none;border:none;color:#67e8f9;font-size:0.88em;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:underline">Register here</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== ADMIN LOGIN ===== -->
+    <div id="admin-login-screen" class="login-screen">
+        <div class="login-box">
+            <div class="login-brand">
+                <span class="brand-icon">🛠️</span>
+                <h2>Admin Login</h2>
+                <p>Mentor / administrator access only</p>
+            </div>
+            <div class="login-card">
+                <div class="login-alert" id="admin-login-alert">Invalid username or password. Please try again.</div>
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="admin-username" placeholder="admin">
+                    <div class="login-error-msg" id="admin-user-err">Username is required.</div>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="admin-password" placeholder="••••••••">
+                    <div class="login-error-msg" id="admin-pass-err">Password is required.</div>
+                </div>
+                <button class="login-btn admin-btn" onclick="doLogin('admin')">Login as Admin</button>
+            </div>
+            <div class="back-link"><button onclick="showRoleSelect()">← Back to role selection</button></div>
+            <div style="text-align:center;margin-top:14px">
+                <span style="color:rgba(255,255,255,0.4);font-size:0.88em">New admin account? </span>
+                <button onclick="showRegister('admin')" style="background:none;border:none;color:#c4b5fd;font-size:0.88em;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:underline">Create account</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== COORDINATOR LOGIN ===== -->
+    <div id="coordinator-login-screen" class="login-screen">
+        <div class="login-box">
+            <div class="login-brand">
+                <span class="brand-icon">🏫</span>
+                <h2>Coordinator Login</h2>
+                <p>Department coordinator access</p>
+            </div>
+            <div class="login-card">
+                <div class="login-alert" id="coordinator-login-alert">Invalid username or password. Please try again.</div>
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="coordinator-username" placeholder="coordinator_username">
+                    <div class="login-error-msg" id="coordinator-user-err">Username is required.</div>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="coordinator-password" placeholder="••••••••">
+                    <div class="login-error-msg" id="coordinator-pass-err">Password is required.</div>
+                </div>
+                <button class="login-btn coordinator-btn" onclick="doLogin('coordinator')">Login as Coordinator</button>
+            </div>
+            <div class="back-link"><button onclick="showRoleSelect()">← Back to role selection</button></div>
+            <div style="text-align:center;margin-top:14px">
+                <span style="color:rgba(255,255,255,0.4);font-size:0.88em">New coordinator account? </span>
+                <button onclick="showRegister('coordinator')" style="background:none;border:none;color:#6ee7b7;font-size:0.88em;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:underline">Create account</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== REGISTER MODAL ===== -->
+    <div id="register-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:99999;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px)">
+        <div style="background:white;border-radius:20px;width:100%;max-width:420px;box-shadow:0 25px 60px rgba(0,0,0,0.4);overflow:hidden">
+            <div style="padding:24px 28px 0">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                    <h2 style="font-family:'Syne',sans-serif;font-size:1.25em;color:var(--text)" id="register-title">Create Account</h2>
+                    <button onclick="closeRegister()" style="background:var(--bg);border:none;border-radius:8px;width:32px;height:32px;font-size:1.1em;cursor:pointer;color:var(--muted)">✕</button>
+                </div>
+                <p style="color:var(--muted);font-size:0.88em;margin-bottom:20px" id="register-subtitle">Fill in the details below to create your account.</p>
+            </div>
+            <div style="padding:0 28px 8px">
+                <div id="register-alert" style="background:#fee2e2;border:1px solid #fca5a5;border-radius:8px;padding:10px 14px;color:#dc2626;font-size:0.85em;margin-bottom:14px;display:none"></div>
+                <div id="register-success" style="background:#d1fae5;border:1px solid #6ee7b7;border-radius:8px;padding:10px 14px;color:#065f46;font-size:0.85em;margin-bottom:14px;display:none"></div>
+
+                <div id="register-student-fields">
+                    <div style="margin-bottom:14px">
+                        <label style="display:block;font-size:0.78em;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px">Full Name</label>
+                        <input id="reg-name" type="text" placeholder="Your full name" style="width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:0.95em;color:var(--text)">
+                    </div>
+                    <div style="margin-bottom:14px">
+                        <label style="display:block;font-size:0.78em;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px">Email Address *</label>
+                        <input id="reg-email" type="email" placeholder="you@college.edu" style="width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:0.95em;color:var(--text)">
+                    </div>
+                </div>
+                <div id="register-admin-fields" style="display:none">
+                    <div style="margin-bottom:14px">
+                        <label style="display:block;font-size:0.78em;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px">Username *</label>
+                        <input id="reg-username" type="text" placeholder="Choose a username" style="width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:0.95em;color:var(--text)">
+                    </div>
+                </div>
+                <div id="register-coordinator-fields" style="display:none">
+                    <div style="margin-bottom:14px">
+                        <label style="display:block;font-size:0.78em;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px">Username *</label>
+                        <input id="reg-coord-username" type="text" placeholder="Choose a username" style="width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:0.95em;color:var(--text)">
+                    </div>
+                    <div style="margin-bottom:14px">
+                        <label style="display:block;font-size:0.78em;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px">Your Department *</label>
+                        <select id="reg-coord-dept" style="width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:0.95em;color:var(--text);background:white">
+                            <option value="">Select Department</option>
+                            <option value="Computer Engineering">Computer Engineering</option>
+                            <option value="Information Technology">Information Technology</option>
+                            <option value="Electronics &amp; Telecommunication">Electronics &amp; Telecommunication</option>
+                            <option value="Mechanical Engineering">Mechanical Engineering</option>
+                            <option value="Civil Engineering">Civil Engineering</option>
+                            <option value="Electrical Engineering">Electrical Engineering</option>
+                            <option value="AIDS / Data Science">AI &amp; Data Science (AIDS/DS)</option>
+                            <option value="Chemical Engineering">Chemical Engineering</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="margin-bottom:14px">
+                    <label style="display:block;font-size:0.78em;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px">Password *</label>
+                    <div style="position:relative">
+                        <input id="reg-password" type="password" placeholder="Min 6 characters" style="width:100%;padding:10px 40px 10px 13px;border:1.5px solid var(--border);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:0.95em;color:var(--text)">
+                        <button onclick="toggleRegPwd('reg-password',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:1em">👁️</button>
+                    </div>
+                </div>
+                <div style="margin-bottom:20px">
+                    <label style="display:block;font-size:0.78em;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px">Confirm Password *</label>
+                    <input id="reg-confirm" type="password" placeholder="Repeat your password" style="width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:0.95em;color:var(--text)">
+                </div>
+                <div style="background:#e0f2fe;border:1px solid #7dd3fc;border-radius:8px;padding:10px 13px;font-size:0.8em;color:#0369a1;margin-bottom:18px">
+                    ℹ️ After registering, you can <strong>log in immediately</strong> with your new credentials.
+                </div>
+            </div>
+            <div style="padding:0 28px 24px;display:flex;gap:10px">
+                <button onclick="closeRegister()" style="flex:1;padding:11px;background:var(--bg);border:1.5px solid var(--border);border-radius:9px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;color:var(--muted)">Cancel</button>
+                <button onclick="doRegister()" id="reg-submit-btn" style="flex:2;padding:11px;background:linear-gradient(135deg,var(--primary),var(--secondary));color:white;border:none;border-radius:9px;font-family:'DM Sans',sans-serif;font-weight:700;cursor:pointer">Create Account</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MAIN APP ===== -->
+    <div id="main-app">
+        <div class="topbar">
+            <div class="topbar-left">
+                <span class="topbar-logo">📋 Project System</span>
+                <span class="role-badge" id="topbar-role-badge">Student</span>
+            </div>
+            <div class="topbar-right">
+                <span class="user-chip">👤 <span id="topbar-username">user</span></span>
+                <button class="logout-btn" onclick="doLogout()">Logout</button>
+            </div>
+        </div>
+
+        <div class="app-body">
+
+            <!-- ===== STUDENT VIEW ===== -->
+            <div id="student-view" style="display:none">
+                <div class="tab-nav">
+                    <button class="tab-btn active" onclick="switchStudentTab('submit')">✏️ Submit Project</button>
+                    <button class="tab-btn" onclick="switchStudentTab('status')">📊 My Status</button>
+                </div>
+
+                <!-- Submit Tab -->
+                <div id="student-submit-tab" class="tab-pane active">
+                    <div class="card">
+                        <h2>✏️ Submit Your Project Ideas</h2>
+                        <div class="success-message" id="success-message">✓ Your project ideas have been submitted successfully!</div>
+                        <form id="submission-form">
+                            <div class="section-block">
+                                <h3>Group Members</h3>
+                                <div style="margin-bottom:20px">
+                                    <h4>Member 1 — Team Leader</h4>
+                                    <div class="form-group"><label>Full Name *</label><input type="text" id="member1-name" required placeholder="Enter full name" pattern="[A-Za-z\s]+" title="Only letters and spaces"><span class="error-message" id="member1-name-error">Only letters and spaces</span></div>
+                                    <div class="form-group"><label>Year *</label><select id="member1-year" required><option value="">Select Year</option><option value="FE">First Year (FE)</option><option value="SE">Second Year (SE)</option><option value="TE">Third Year (TE)</option><option value="BE">Final Year (BE)</option></select></div>
+                                    <div class="form-group"><label>Department *</label><select id="member1-dept" required><option value="">Select Department</option><option value="Computer Engineering">Computer Engineering</option><option value="Information Technology">Information Technology</option><option value="Electronics &amp; Telecommunication">Electronics &amp; Telecommunication</option><option value="Mechanical Engineering">Mechanical Engineering</option><option value="Civil Engineering">Civil Engineering</option><option value="Electrical Engineering">Electrical Engineering</option><option value="AIDS / Data Science">AI &amp; Data Science (AIDS/DS)</option><option value="Chemical Engineering">Chemical Engineering</option><option value="Other">Other</option></select></div>
+                                </div>
+                                <div style="margin-bottom:20px">
+                                    <h4>Member 2</h4>
+                                    <div class="form-group"><label>Full Name *</label><input type="text" id="member2-name" required placeholder="Enter full name" pattern="[A-Za-z\s]+" title="Only letters and spaces"><span class="error-message" id="member2-name-error">Only letters and spaces</span></div>
+                                    <div class="form-group"><label>Year *</label><select id="member2-year" required><option value="">Select Year</option><option value="FE">First Year (FE)</option><option value="SE">Second Year (SE)</option><option value="TE">Third Year (TE)</option><option value="BE">Final Year (BE)</option></select></div>
+                                    <div class="form-group"><label>Department *</label><select id="member2-dept" required><option value="">Select Department</option><option value="Computer Engineering">Computer Engineering</option><option value="Information Technology">Information Technology</option><option value="Electronics &amp; Telecommunication">Electronics &amp; Telecommunication</option><option value="Mechanical Engineering">Mechanical Engineering</option><option value="Civil Engineering">Civil Engineering</option><option value="Electrical Engineering">Electrical Engineering</option><option value="AIDS / Data Science">AI &amp; Data Science (AIDS/DS)</option><option value="Chemical Engineering">Chemical Engineering</option><option value="Other">Other</option></select></div>
+                                </div>
+                                <div style="margin-bottom:20px">
+                                    <h4>Member 3</h4>
+                                    <div class="form-group"><label>Full Name *</label><input type="text" id="member3-name" required placeholder="Enter full name" pattern="[A-Za-z\s]+" title="Only letters and spaces"><span class="error-message" id="member3-name-error">Only letters and spaces</span></div>
+                                    <div class="form-group"><label>Year *</label><select id="member3-year" required><option value="">Select Year</option><option value="FE">First Year (FE)</option><option value="SE">Second Year (SE)</option><option value="TE">Third Year (TE)</option><option value="BE">Final Year (BE)</option></select></div>
+                                    <div class="form-group"><label>Department *</label><select id="member3-dept" required><option value="">Select Department</option><option value="Computer Engineering">Computer Engineering</option><option value="Information Technology">Information Technology</option><option value="Electronics &amp; Telecommunication">Electronics &amp; Telecommunication</option><option value="Mechanical Engineering">Mechanical Engineering</option><option value="Civil Engineering">Civil Engineering</option><option value="Electrical Engineering">Electrical Engineering</option><option value="AIDS / Data Science">AI &amp; Data Science (AIDS/DS)</option><option value="Chemical Engineering">Chemical Engineering</option><option value="Other">Other</option></select></div>
+                                </div>
+                                <div>
+                                    <h4>Member 4 (Optional)</h4>
+                                    <div class="form-group"><label>Full Name</label><input type="text" id="member4-name" placeholder="Enter full name" pattern="[A-Za-z\s]*"><span class="error-message" id="member4-name-error">Only letters and spaces</span></div>
+                                    <div class="form-group"><label>Year</label><select id="member4-year"><option value="">Select Year</option><option value="FE">First Year (FE)</option><option value="SE">Second Year (SE)</option><option value="TE">Third Year (TE)</option><option value="BE">Final Year (BE)</option></select></div>
+                                    <div class="form-group"><label>Department</label><select id="member4-dept"><option value="">Select Department</option><option value="Computer Engineering">Computer Engineering</option><option value="Information Technology">Information Technology</option><option value="Electronics &amp; Telecommunication">Electronics &amp; Telecommunication</option><option value="Mechanical Engineering">Mechanical Engineering</option><option value="Civil Engineering">Civil Engineering</option><option value="Electrical Engineering">Electrical Engineering</option><option value="AIDS / Data Science">AI &amp; Data Science (AIDS/DS)</option><option value="Chemical Engineering">Chemical Engineering</option><option value="Other">Other</option></select></div>
+                                </div>
+                            </div>
+                            <div class="form-group"><label>Group Contact Email *</label><input type="email" id="group-email" required placeholder="group.email@example.com"><span class="error-message" id="email-error">Please enter a valid email</span></div>
+                            <div class="section-block">
+                                <h3>Project Idea 1</h3>
+                                <div class="form-group"><label>Title *</label><input type="text" id="project1-title" required placeholder="Enter project title" maxlength="100"><span class="error-message" id="project1-title-error">Title is required</span></div>
+                                <div class="form-group"><label>Description *</label><textarea id="project1-desc" required placeholder="Describe your project idea..." minlength="20" maxlength="500"></textarea><span class="error-message" id="project1-desc-error">Min 20 characters</span></div>
+                            </div>
+                            <div class="section-block">
+                                <h3>Project Idea 2</h3>
+                                <div class="form-group"><label>Title *</label><input type="text" id="project2-title" required placeholder="Enter project title" maxlength="100"></div>
+                                <div class="form-group"><label>Description *</label><textarea id="project2-desc" required placeholder="Describe your project idea..." minlength="20" maxlength="500"></textarea><span class="error-message" id="project2-desc-error">Min 20 characters</span></div>
+                            </div>
+                            <div class="section-block">
+                                <h3>Project Idea 3</h3>
+                                <div class="form-group"><label>Title *</label><input type="text" id="project3-title" required placeholder="Enter project title" maxlength="100"></div>
+                                <div class="form-group"><label>Description *</label><textarea id="project3-desc" required placeholder="Describe your project idea..." minlength="20" maxlength="500"></textarea><span class="error-message" id="project3-desc-error">Min 20 characters</span></div>
+                            </div>
+                            <button type="submit" class="submit-btn">Submit Project Ideas</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Status Tab -->
+                <div id="student-status-tab" class="tab-pane">
+                    <div class="card">
+                        <h2>📊 My Submission Status</h2>
+                        <p style="color:var(--muted);margin-bottom:20px;font-size:0.95em">Enter your group email to check your project approval status and assigned mentor.</p>
+                        <div style="display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap">
+                            <input type="email" id="status-email-input" placeholder="Enter your group email..." style="flex:1;min-width:200px;padding:11px 14px;border:1.5px solid var(--border);border-radius:9px;font-size:0.95em;font-family:'DM Sans',sans-serif;">
+                            <button onclick="checkStatus()" style="background:linear-gradient(135deg,var(--primary),var(--secondary));color:white;padding:11px 24px;border:none;border-radius:9px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap;">Check Status</button>
+                        </div>
+                        <div id="status-results"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== ADMIN VIEW ===== -->
+            <div id="admin-view" style="display:none">
+                <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:0">
+                    <div class="tab-nav" style="margin-bottom:0">
+                        <button class="tab-btn active" onclick="switchAdminTab('submissions')">📋 Submissions</button>
+                        <button class="tab-btn" onclick="switchAdminTab('mentors')">👨‍🏫 Manage Mentors</button>
+                        <button class="tab-btn" onclick="switchAdminTab('academic')">🎓 Academic Overview</button>
+                    </div>
+                    <button onclick="exportToExcel()" id="export-btn" style="display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,#059669,#10b981);color:white;padding:10px 20px;border:none;border-radius:10px;font-size:0.9em;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all 0.2s;box-shadow:0 3px 10px rgba(16,185,129,0.3);white-space:nowrap" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 18px rgba(16,185,129,0.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 3px 10px rgba(16,185,129,0.3)'">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                        Export to Excel
+                    </button>
+                </div>
+                <div style="margin-bottom:24px"></div>
+
+                <!-- Submissions Tab -->
+                <div id="admin-submissions-tab" class="tab-pane active">
+                    <div class="card">
+                        <h2>📋 Review Submissions</h2>
+                        <div id="submissions-container">
+                            <div class="no-submissions"><h3>Loading…</h3></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mentors Tab -->
+                <div id="admin-mentors-tab" class="tab-pane">
+                    <div class="mentor-management-grid">
+                        <div class="card">
+                            <h2>👨‍🏫 Mentor List</h2>
+                            <div id="mentor-list-container"><p style="color:var(--muted)">Loading mentors…</p></div>
+                        </div>
+                        <div class="card">
+                            <h2>➕ Add New Mentor</h2>
+                            <div class="add-mentor-form">
+                                <h4>Mentor Details</h4>
+                                <div class="form-group"><label>Full Name *</label><input type="text" id="new-mentor-name" placeholder="e.g., Dr. Ramesh Kumar"></div>
+                                <div class="form-group"><label>Department *</label><input type="text" id="new-mentor-dept" placeholder="e.g., Computer Engineering"></div>
+                                <div class="form-group"><label>Email</label><input type="email" id="new-mentor-email" placeholder="mentor@college.edu"></div>
+                                <button onclick="addMentor()" style="background:linear-gradient(135deg,var(--primary),var(--secondary));color:white;padding:11px 24px;border:none;border-radius:9px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;width:100%;margin-top:6px;">Add Mentor</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Academic Overview Tab -->
+                <div id="admin-academic-tab" class="tab-pane">
+
+                    <!-- Filter Bar -->
+                    <div class="card" style="margin-bottom:20px">
+                        <h2>🎓 Academic Overview</h2>
+                        <p style="color:var(--muted);font-size:0.92em;margin-bottom:20px">Filter and explore all submissions by academic year, department, and status.</p>
+
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:18px">
+                            <div>
+                                <label style="display:block;font-size:0.78em;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Academic Year</label>
+                                <select id="filter-year" onchange="applyFilters()" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:0.92em;color:var(--text);background:white;cursor:pointer">
+                                    <option value="">All Years</option>
+                                    <option value="FE">First Year (FE)</option>
+                                    <option value="SE">Second Year (SE)</option>
+                                    <option value="TE">Third Year (TE)</option>
+                                    <option value="BE">Final Year (BE)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:0.78em;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Semester</label>
+                                <select id="filter-sem" onchange="applyFilters()" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:0.92em;color:var(--text);background:white;cursor:pointer">
+                                    <option value="">All Semesters</option>
+                                    <option value="SEM1">Sem 1 (FE)</option>
+                                    <option value="SEM2">Sem 2 (FE)</option>
+                                    <option value="SEM3">Sem 3 (SE)</option>
+                                    <option value="SEM4">Sem 4 (SE)</option>
+                                    <option value="SEM5">Sem 5 (TE)</option>
+                                    <option value="SEM6">Sem 6 (TE)</option>
+                                    <option value="SEM7">Sem 7 (BE)</option>
+                                    <option value="SEM8">Sem 8 (BE)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:0.78em;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Department</label>
+                                <select id="filter-dept" onchange="applyFilters()" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:0.92em;color:var(--text);background:white;cursor:pointer">
+                                    <option value="">All Departments</option>
+                                    <option value="Computer Engineering">Computer Engineering</option>
+                                    <option value="Information Technology">Information Technology</option>
+                                    <option value="Electronics">Electronics & TC</option>
+                                    <option value="Mechanical">Mechanical</option>
+                                    <option value="Civil">Civil</option>
+                                    <option value="Electrical">Electrical</option>
+                                    <option value="AIDS">AI & Data Science</option>
+                                    <option value="Chemical">Chemical</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:0.78em;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Status</label>
+                                <select id="filter-status" onchange="applyFilters()" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:0.92em;color:var(--text);background:white;cursor:pointer">
+                                    <option value="">All Statuses</option>
+                                    <option value="pending">⏳ Pending</option>
+                                    <option value="approved">✅ Approved</option>
+                                    <option value="rejected">❌ Rejected</option>
+                                </select>
+                            </div>
+                            <div style="display:flex;align-items:flex-end">
+                                <button onclick="resetFilters()" style="width:100%;padding:10px 12px;background:#f1f5f9;border:1.5px solid var(--border);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:0.88em;font-weight:600;color:var(--muted);cursor:pointer;transition:all 0.2s" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">↺ Reset Filters</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stats Row -->
+                    <div id="academic-stats" style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:20px">
+                        <!-- filled by JS -->
+                    </div>
+
+                    <!-- Year Breakdown Cards -->
+                    <div id="academic-year-breakdown" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:20px">
+                        <!-- filled by JS -->
+                    </div>
+
+                    <!-- Department Breakdown -->
+                    <div class="card" style="margin-bottom:20px">
+                        <h2 style="margin-bottom:18px">🏫 Department Breakdown</h2>
+                        <div id="academic-dept-breakdown" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px">
+                            <!-- filled by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Filtered Submissions Table -->
+                    <div class="card">
+                        <h2 style="margin-bottom:18px">📋 Filtered Submissions</h2>
+                        <div id="academic-results">
+                            <p style="color:var(--muted);text-align:center;padding:40px">Loading data…</p>
+                        </div>
+                    </div>
+
+                </div><!-- end academic tab -->
+            </div>
+
+            <!-- ===== COORDINATOR VIEW ===== -->
+            <div id="coordinator-view" style="display:none">
+                <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:0">
+                    <div class="tab-nav" style="margin-bottom:0">
+                        <button class="tab-btn active" onclick="switchCoordinatorTab('submissions')">📋 Dept. Submissions</button>
+                        <button class="tab-btn" onclick="switchCoordinatorTab('mentors')">👨‍🏫 Dept. Mentors</button>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px">
+                        <span id="coordinator-dept-badge" style="background:#d1fae5;color:#065f46;padding:6px 16px;border-radius:20px;font-size:0.82em;font-weight:700;border:1px solid #6ee7b7"></span>
+                    </div>
+                </div>
+                <div style="margin-bottom:24px"></div>
+
+                <!-- Coordinator Submissions Tab -->
+                <div id="coordinator-submissions-tab" class="tab-pane active">
+                    <div class="card">
+                        <h2>📋 Department Submissions</h2>
+                        <p style="color:var(--muted);font-size:0.92em;margin-bottom:20px">Showing submissions from students in your department only.</p>
+                        <div id="coordinator-submissions-container">
+                            <div class="no-submissions"><h3>Loading…</h3></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Coordinator Mentors Tab -->
+                <div id="coordinator-mentors-tab" class="tab-pane">
+                    <div class="mentor-management-grid">
+                        <div class="card">
+                            <h2>👨‍🏫 Department Mentors</h2>
+                            <p style="color:var(--muted);font-size:0.88em;margin-bottom:16px">Mentors assigned to your department's submissions.</p>
+                            <div id="coordinator-mentor-list-container"><p style="color:var(--muted)">Loading mentors…</p></div>
+                        </div>
+                        <div class="card">
+                            <h2>📊 Department Summary</h2>
+                            <div id="coordinator-dept-summary" style="padding:10px 0">
+                                <p style="color:var(--muted)">Loading summary…</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_BASE_URL = 'http://localhost/project-system';
+
+    // ============================================================
+    // NAVIGATION
+    // ============================================================
+    function showRoleSelect() {
+        document.getElementById('role-select-screen').style.display = 'flex';
+        document.getElementById('year-dept-screen').classList.remove('active');
+        document.querySelectorAll('.login-screen').forEach(s => s.classList.remove('active'));
+        document.getElementById('main-app').style.display = 'none';
+    }
+
+    // ─── YEAR & DEPT SELECTION ────────────────────────────────────────────────
+    let selectedYear = '';
+    let selectedDept = '';
+
+    function showYearDeptSelect() {
+        document.getElementById('role-select-screen').style.display = 'none';
+        document.getElementById('year-dept-screen').classList.add('active');
+        // Reset state
+        selectedYear = ''; selectedDept = '';
+        document.querySelectorAll('#year-dept-screen .yd-option').forEach(o => o.classList.remove('selected'));
+        document.getElementById('yd-summary').innerHTML = '';
+        document.getElementById('yd-continue-btn').classList.remove('ready');
+    }
+
+    function selectYear(value, el) {
+        document.querySelectorAll('.year-grid .yd-option').forEach(o => o.classList.remove('selected'));
+        el.classList.add('selected');
+        selectedYear = value;
+        updateYDSummary();
+    }
+
+    function selectDept(value, el) {
+        document.querySelectorAll('.dept-grid .yd-option').forEach(o => o.classList.remove('selected'));
+        el.classList.add('selected');
+        selectedDept = value;
+        updateYDSummary();
+    }
+
+    function updateYDSummary() {
+        const summary = document.getElementById('yd-summary');
+        summary.innerHTML = '';
+        if (selectedYear) {
+            const pill = document.createElement('span');
+            pill.className = 'yd-selection-pill';
+            pill.innerHTML = `📅 ${selectedYear}`;
+            summary.appendChild(pill);
+        }
+        if (selectedDept) {
+            const pill = document.createElement('span');
+            pill.className = 'yd-selection-pill';
+            pill.innerHTML = `🏫 ${selectedDept}`;
+            summary.appendChild(pill);
+        }
+        const btn = document.getElementById('yd-continue-btn');
+        if (selectedYear && selectedDept) btn.classList.add('ready');
+        else btn.classList.remove('ready');
+    }
+
+    function proceedToStudentLogin() {
+        if (!selectedYear || !selectedDept) return;
+        // Store for pre-filling the form later
+        sessionStorage.setItem('pms_selected_year', selectedYear);
+        sessionStorage.setItem('pms_selected_dept', selectedDept);
+        document.getElementById('year-dept-screen').classList.remove('active');
+        document.getElementById('student-login-screen').classList.add('active');
+    }
+
+
+    function showLogin(role) {
+        document.getElementById('role-select-screen').style.display = 'none';
+        document.getElementById('year-dept-screen').classList.remove('active');
+        document.getElementById('main-app').style.display = 'none';
+        ['student','admin','coordinator'].forEach(r => {
+            const el = document.getElementById(`${r}-login-screen`);
+            if (el) el.classList.toggle('active', r === role);
+        });
+    }
+
+    function showApp(role, username, extra) {
+        document.getElementById('role-select-screen').style.display = 'none';
+        document.querySelectorAll('.login-screen').forEach(s => s.classList.remove('active'));
+        document.getElementById('main-app').style.display = 'block';
+        document.getElementById('topbar-username').textContent = username;
+        const badge = document.getElementById('topbar-role-badge');
+        document.getElementById('student-view').style.display = 'none';
+        document.getElementById('admin-view').style.display = 'none';
+        document.getElementById('coordinator-view').style.display = 'none';
+        if (role === 'student') {
+            badge.textContent = 'Student'; badge.className = 'role-badge student';
+            document.getElementById('student-view').style.display = 'block';
+            const preYear = sessionStorage.getItem('pms_selected_year');
+            const preDept = sessionStorage.getItem('pms_selected_dept');
+            if (preYear || preDept) {
+                requestAnimationFrame(() => {
+                    ['member1','member2','member3','member4'].forEach(m => {
+                        if (preYear) { const el = document.getElementById(`${m}-year`); if (el) el.value = preYear; }
+                        if (preDept) { const el = document.getElementById(`${m}-dept`); if (el) el.value = preDept; }
+                    });
+                });
+            }
+        } else if (role === 'coordinator') {
+            badge.textContent = 'Coordinator'; badge.className = 'role-badge coordinator';
+            document.getElementById('coordinator-view').style.display = 'block';
+            const dept = extra || sessionStorage.getItem('pms_coordinator_dept') || '';
+            sessionStorage.setItem('pms_coordinator_dept', dept);
+            const deptBadge = document.getElementById('coordinator-dept-badge');
+            if (deptBadge) deptBadge.textContent = '🏫 ' + (dept || 'All Departments');
+            loadCoordinatorSubmissions();
+            loadCoordinatorMentors();
+        } else {
+            badge.textContent = 'Admin'; badge.className = 'role-badge admin';
+            document.getElementById('admin-view').style.display = 'block';
+            loadSubmissions();
+            loadMentors();
+        }
+    }
+
+    function doLogout() {
+        sessionStorage.removeItem('pms_role');
+        sessionStorage.removeItem('pms_user');
+        sessionStorage.removeItem('pms_coordinator_dept');
+        showRoleSelect();
+    }
+
+    function switchStudentTab(tab) {
+        document.querySelectorAll('#student-view .tab-btn').forEach((b,i) => b.classList.toggle('active', (tab==='submit' && i===0)||(tab==='status' && i===1)));
+        document.getElementById('student-submit-tab').classList.toggle('active', tab === 'submit');
+        document.getElementById('student-status-tab').classList.toggle('active', tab === 'status');
+    }
+
+    function switchAdminTab(tab) {
+        document.querySelectorAll('#admin-view .tab-btn').forEach((b,i) => b.classList.toggle('active', (tab==='submissions' && i===0)||(tab==='mentors' && i===1)||(tab==='academic' && i===2)));
+        document.getElementById('admin-submissions-tab').classList.toggle('active', tab === 'submissions');
+        document.getElementById('admin-mentors-tab').classList.toggle('active', tab === 'mentors');
+        document.getElementById('admin-academic-tab').classList.toggle('active', tab === 'academic');
+        if (tab === 'mentors') loadMentors();
+        if (tab === 'academic') loadAcademicData();
+    }
+
+    function switchCoordinatorTab(tab) {
+        document.querySelectorAll('#coordinator-view .tab-btn').forEach((b,i) => b.classList.toggle('active', (tab==='submissions' && i===0)||(tab==='mentors' && i===1)));
+        document.getElementById('coordinator-submissions-tab').classList.toggle('active', tab === 'submissions');
+        document.getElementById('coordinator-mentors-tab').classList.toggle('active', tab === 'mentors');
+        if (tab === 'submissions') loadCoordinatorSubmissions();
+        if (tab === 'mentors') loadCoordinatorMentors();
+    }
+
+    // ============================================================
+    // LOGIN
+    // ============================================================
+    async function doLogin(role) {
+        if (role === 'student') {
+            const email = document.getElementById('student-email').value.trim();
+            const password = document.getElementById('student-password').value;
+            const alertEl = document.getElementById('student-login-alert');
+            alertEl.classList.remove('visible');
+            document.getElementById('student-email-err').classList.remove('visible');
+            document.getElementById('student-pass-err').classList.remove('visible');
+            let valid = true;
+            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { document.getElementById('student-email-err').classList.add('visible'); valid = false; }
+            if (!password) { document.getElementById('student-pass-err').classList.add('visible'); valid = false; }
+            if (!valid) return;
+            try {
+                const res = await fetch(`${API_BASE_URL}/login.php`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ role: 'student', email, password }) });
+                const data = await res.json();
+                if (data.success) { sessionStorage.setItem('pms_role','student'); sessionStorage.setItem('pms_user',email); showApp('student', email); }
+                else { alertEl.classList.add('visible'); }
+            } catch { sessionStorage.setItem('pms_role','student'); sessionStorage.setItem('pms_user',email); showApp('student', email); }
+        } else if (role === 'coordinator') {
+            const username = document.getElementById('coordinator-username').value.trim();
+            const password = document.getElementById('coordinator-password').value;
+            const alertEl = document.getElementById('coordinator-login-alert');
+            alertEl.classList.remove('visible');
+            document.getElementById('coordinator-user-err').classList.remove('visible');
+            document.getElementById('coordinator-pass-err').classList.remove('visible');
+            let valid = true;
+            if (!username) { document.getElementById('coordinator-user-err').classList.add('visible'); valid = false; }
+            if (!password) { document.getElementById('coordinator-pass-err').classList.add('visible'); valid = false; }
+            if (!valid) return;
+            try {
+                const res = await fetch(`${API_BASE_URL}/login.php`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ role: 'coordinator', username, password }) });
+                const data = await res.json();
+                if (data.success) {
+                    sessionStorage.setItem('pms_role','coordinator');
+                    sessionStorage.setItem('pms_user', username);
+                    sessionStorage.setItem('pms_coordinator_dept', data.user.department || '');
+                    showApp('coordinator', username, data.user.department || '');
+                } else { alertEl.classList.add('visible'); }
+            } catch {
+                // Demo fallback: any coordinator login goes to coordinator view with no dept filter
+                sessionStorage.setItem('pms_role','coordinator');
+                sessionStorage.setItem('pms_user', username);
+                sessionStorage.setItem('pms_coordinator_dept', '');
+                showApp('coordinator', username, '');
+            }
+        } else {
+            const username = document.getElementById('admin-username').value.trim();
+            const password = document.getElementById('admin-password').value;
+            const alertEl = document.getElementById('admin-login-alert');
+            alertEl.classList.remove('visible');
+            document.getElementById('admin-user-err').classList.remove('visible');
+            document.getElementById('admin-pass-err').classList.remove('visible');
+            let valid = true;
+            if (!username) { document.getElementById('admin-user-err').classList.add('visible'); valid = false; }
+            if (!password) { document.getElementById('admin-pass-err').classList.add('visible'); valid = false; }
+            if (!valid) return;
+            try {
+                const res = await fetch(`${API_BASE_URL}/login.php`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ role: 'admin', username, password }) });
+                const data = await res.json();
+                if (data.success) { sessionStorage.setItem('pms_role','admin'); sessionStorage.setItem('pms_user',username); showApp('admin', username); }
+                else { alertEl.classList.add('visible'); }
+            } catch {
+                if (username === 'admin' && password === 'admin') { sessionStorage.setItem('pms_role','admin'); sessionStorage.setItem('pms_user',username); showApp('admin', username); }
+                else { alertEl.classList.add('visible'); }
+            }
+        }
+    }
+
+    document.addEventListener('keydown', e => {
+        if (e.key !== 'Enter') return;
+        if (document.getElementById('student-login-screen').classList.contains('active')) doLogin('student');
+        if (document.getElementById('admin-login-screen').classList.contains('active')) doLogin('admin');
+        if (document.getElementById('coordinator-login-screen').classList.contains('active')) doLogin('coordinator');
+    });
+
+    // ============================================================
+    // FORM VALIDATION
+    // ============================================================
+    function validateNameInput(inputId, errorId) {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        const error = document.getElementById(errorId);
+        input.addEventListener('input', function() {
+            const bad = /[^A-Za-z\s]/.test(this.value);
+            if (bad) { this.classList.add('error'); if(error) error.style.display='block'; this.value = this.value.replace(/[^A-Za-z\s]/g,''); }
+            else { this.classList.remove('error'); if(error) error.style.display='none'; }
+        });
+    }
+    function validateDescription(id, errId) {
+        const el = document.getElementById(id); const err = document.getElementById(errId);
+        if (!el) return;
+        el.addEventListener('input', function() {
+            if (this.value.length > 0 && this.value.length < 20) { this.classList.add('error'); if(err) err.style.display='block'; }
+            else { this.classList.remove('error'); if(err) err.style.display='none'; }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        ['member1','member2','member3','member4'].forEach(m => { validateNameInput(`${m}-name`,`${m}-name-error`); });
+        ['project1','project2','project3'].forEach(p => validateDescription(`${p}-desc`,`${p}-desc-error`));
+        const saved = sessionStorage.getItem('pms_role');
+        if (saved) {
+            const extra = saved === 'coordinator' ? sessionStorage.getItem('pms_coordinator_dept') : undefined;
+            showApp(saved, sessionStorage.getItem('pms_user'), extra);
+        }
+    });
+
+    // ============================================================
+    // FORM SUBMIT
+    // ============================================================
+    document.getElementById('submission-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const members = [
+            { name: document.getElementById('member1-name').value, year: document.getElementById('member1-year').value, department: document.getElementById('member1-dept').value, role: 'Team Leader' },
+            { name: document.getElementById('member2-name').value, year: document.getElementById('member2-year').value, department: document.getElementById('member2-dept').value, role: 'Member' },
+            { name: document.getElementById('member3-name').value, year: document.getElementById('member3-year').value, department: document.getElementById('member3-dept').value, role: 'Member' }
+        ];
+        const m4 = document.getElementById('member4-name').value.trim();
+        if (m4) members.push({ name: m4, year: document.getElementById('member4-year').value, department: document.getElementById('member4-dept').value, role: 'Member' });
+        const data = {
+            groupEmail: document.getElementById('group-email').value, members,
+            projects: [
+                { title: document.getElementById('project1-title').value, description: document.getElementById('project1-desc').value },
+                { title: document.getElementById('project2-title').value, description: document.getElementById('project2-desc').value },
+                { title: document.getElementById('project3-title').value, description: document.getElementById('project3-desc').value }
+            ]
+        };
+        try {
+            const res = await fetch(`${API_BASE_URL}/submit.php`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) });
+            const result = await res.json();
+            if (result.success) { document.getElementById('success-message').style.display='block'; this.reset(); setTimeout(() => document.getElementById('success-message').style.display='none', 3000); }
+            else alert('Error: ' + result.message);
+        } catch(err) { alert('Error: ' + err.message); }
+    });
+
+    // ============================================================
+    // MENTOR MANAGEMENT
+    // ============================================================
+    let mentorsCache = [];
+
+    async function loadMentors() {
+        const container = document.getElementById('mentor-list-container');
+        try {
+            const res = await fetch(`${API_BASE_URL}/mentors.php`);
+            const data = await res.json();
+            mentorsCache = data.mentors || [];
+            renderMentorList();
+        } catch {
+            // Demo fallback
+            if (mentorsCache.length === 0) {
+                mentorsCache = [
+                    { id: 1, name: 'Dr. Ramesh Kumar', department: 'Computer Engineering', email: 'ramesh@college.edu' },
+                    { id: 2, name: 'Prof. Sunita Sharma', department: 'Information Technology', email: 'sunita@college.edu' },
+                    { id: 3, name: 'Dr. Anil Patil', department: 'Electronics', email: 'anil@college.edu' }
+                ];
+            }
+            renderMentorList();
+        }
+    }
+
+    function renderMentorList() {
+        const container = document.getElementById('mentor-list-container');
+        if (!container) return;
+        if (mentorsCache.length === 0) {
+            container.innerHTML = '<p style="color:var(--muted);text-align:center;padding:20px">No mentors added yet.</p>';
+            return;
+        }
+        container.innerHTML = mentorsCache.map(m => `
+            <div class="mentor-list-item">
+                <div>
+                    <div class="mentor-name">👨‍🏫 ${m.name}</div>
+                    <div class="mentor-dept">${m.department}${m.email ? ' • ' + m.email : ''}</div>
+                </div>
+                <button class="delete-btn" onclick="deleteMentor(${m.id})">Remove</button>
+            </div>
+        `).join('');
+    }
+
+    async function addMentor() {
+        const name = document.getElementById('new-mentor-name').value.trim();
+        const dept = document.getElementById('new-mentor-dept').value.trim();
+        const email = document.getElementById('new-mentor-email').value.trim();
+        if (!name || !dept) { alert('Name and Department are required!'); return; }
+        try {
+            const res = await fetch(`${API_BASE_URL}/mentors.php`, {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ action: 'add', name, department: dept, email })
+            });
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('new-mentor-name').value = '';
+                document.getElementById('new-mentor-dept').value = '';
+                document.getElementById('new-mentor-email').value = '';
+                loadMentors();
+            } else alert('Error: ' + data.message);
+        } catch {
+            // Demo fallback
+            const newId = mentorsCache.length ? Math.max(...mentorsCache.map(m=>m.id)) + 1 : 1;
+            mentorsCache.push({ id: newId, name, department: dept, email });
+            document.getElementById('new-mentor-name').value = '';
+            document.getElementById('new-mentor-dept').value = '';
+            document.getElementById('new-mentor-email').value = '';
+            renderMentorList();
+        }
+    }
+
+    async function deleteMentor(id) {
+        if (!confirm('Remove this mentor?')) return;
+        try {
+            const res = await fetch(`${API_BASE_URL}/mentors.php`, {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ action: 'delete', id })
+            });
+            const data = await res.json();
+            if (data.success) loadMentors();
+        } catch {
+            mentorsCache = mentorsCache.filter(m => m.id !== id);
+            renderMentorList();
+        }
+    }
+
+    // ============================================================
+    // LOAD SUBMISSIONS (ADMIN)
+    // ============================================================
+    async function loadSubmissions() {
+        const container = document.getElementById('submissions-container');
+        try {
+            const [subRes, mentorRes] = await Promise.all([
+                fetch(`${API_BASE_URL}/get_submissions.php`),
+                fetch(`${API_BASE_URL}/mentors.php`)
+            ]);
+            const subData = await subRes.json();
+            const mentorData = await mentorRes.json();
+            if (mentorData.mentors) mentorsCache = mentorData.mentors;
+            if (!subData.success) throw new Error(subData.message);
+            renderSubmissions(subData.submissions);
+        } catch {
+            // Try submissions alone
+            try {
+                const res = await fetch(`${API_BASE_URL}/get_submissions.php`);
+                const data = await res.json();
+                if (data.success) renderSubmissions(data.submissions);
+                else container.innerHTML = `<div class="no-submissions"><h3>Error loading</h3><p>${data.message}</p></div>`;
+            } catch(e) {
+                container.innerHTML = `<div class="no-submissions"><h3>Could not load submissions</h3><p>${e.message}</p></div>`;
+            }
+        }
+    }
+
+    function renderSubmissions(submissions) {
+        window._submissionsData = submissions; // cache for local edits
+        const container = document.getElementById('submissions-container');
+        if (submissions.length === 0) {
+            container.innerHTML = `<div class="no-submissions"><h3>No submissions yet</h3><p>Student submissions will appear here</p></div>`;
+            return;
+        }
+        const mentorOptions = mentorsCache.map(m => `<option value="${m.id}">${m.name} (${m.department})</option>`).join('');
+        container.innerHTML = `
+
+        <!-- ===== EDIT SUBMISSION MODAL ===== -->
+        <div id="edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)">
+            <div style="background:white;border-radius:20px;width:100%;max-width:700px;max-height:90vh;overflow-y:auto;box-shadow:0 25px 60px rgba(0,0,0,0.3)">
+                <div style="padding:24px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:white;z-index:1;border-radius:20px 20px 0 0">
+                    <h2 style="font-family:'Syne',sans-serif;font-size:1.2em;color:var(--text)">✏️ Edit Submission</h2>
+                    <button onclick="closeEditModal()" style="background:var(--bg);border:none;border-radius:8px;width:34px;height:34px;font-size:1.2em;cursor:pointer;color:var(--muted)">✕</button>
+                </div>
+                <div style="padding:24px 28px" id="edit-modal-body"></div>
+                <div style="padding:16px 28px 24px;display:flex;gap:12px;justify-content:flex-end;border-top:1px solid var(--border)">
+                    <button onclick="closeEditModal()" style="padding:10px 24px;background:var(--bg);border:1.5px solid var(--border);border-radius:9px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;color:var(--muted)">Cancel</button>
+                    <button onclick="saveEditSubmission()" style="padding:10px 28px;background:linear-gradient(135deg,var(--primary),var(--secondary));color:white;border:none;border-radius:9px;font-family:'DM Sans',sans-serif;font-weight:700;cursor:pointer">Save Changes</button>
+                </div>
+            </div>
+        </div>
+
+            <table class="submissions-table">
+                <thead><tr>
+                    <th style="width:4%">#</th>
+                    <th style="width:13%">Team Leader</th>
+                    <th style="width:18%">Members</th>
+                    <th style="width:28%">Project Ideas</th>
+                    <th style="width:11%">Selected & Status</th>
+                    <th style="width:13%">Assign Mentor</th>
+                    <th style="width:5%">Date</th>
+                    <th style="width:8%">Edit</th>
+                </tr></thead>
+                <tbody>
+                    ${submissions.map((sub, idx) => {
+                        const sel = sub.selection;
+                        const leader = sub.members.find(m => m.role === 'Team Leader') || sub.members[0];
+                        const assignedMentor = sub.mentor ? mentorsCache.find(m => m.id == sub.mentor.id) : null;
+                        return `
+                        <tr>
+                            <td><strong>${idx+1}</strong></td>
+                            <td>
+                                <strong>${leader.name}</strong><br>
+                                <span style="color:var(--muted);font-size:0.82em">${sub.groupEmail}</span>
+                            </td>
+                            <td>
+                                <ul class="member-list">
+                                    ${sub.members.map(m => `<li><strong>${m.name}</strong> ${m.role==='Team Leader'?'<em style="color:var(--primary);font-size:0.8em">(Leader)</em>':''}<br><span style="color:#94a3b8;font-size:0.82em">${m.year} – ${m.department}</span></li>`).join('')}
+                                </ul>
+                            </td>
+                            <td>
+                                <ul class="project-list">
+                                    ${sub.projects.map((p,i) => `
+                                        <li>
+                                            <div class="project-title-table">Project ${i+1}: ${p.title}</div>
+                                            <div style="color:var(--muted);font-size:0.85em;margin-bottom:6px">${p.description}</div>
+                                            <button class="select-btn ${sel && sel.index===i?'selected':''}"
+                                                onclick="selectProject(${sub.id},${i},'${p.title.replace(/'/g,"\\'")}')">
+                                                ${sel && sel.index===i?'✓ Selected':'Select'}
+                                            </button>
+                                        </li>`).join('')}
+                                </ul>
+                            </td>
+                            <td>
+                                ${sel ? `
+                                    <span class="selected-badge">Project ${sel.index+1}</span><br><br>
+                                    <select onchange="updateStatus(${sub.id}, this.value)" style="width:100%;padding:6px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82em;font-family:'DM Sans',sans-serif;cursor:pointer;">
+                                        <option value="pending"   ${(!sub.status||sub.status==='pending')  ?'selected':''}>⏳ Pending</option>
+                                        <option value="approved"  ${sub.status==='approved' ?'selected':''}>✅ Approved</option>
+                                        <option value="rejected"  ${sub.status==='rejected' ?'selected':''}>❌ Rejected</option>
+                                    </select>
+                                    ${(!sub.status || sub.status === 'pending') && sub.mentor ? `<div style="margin-top:6px;font-size:0.75em;color:#d97706;font-weight:600">⚠️ Mentor assigned — consider approving</div>` : ''}
+                                ` : '<span style="color:#94a3b8;font-size:0.85em">No project selected yet</span>'}
+                            </td>
+                            <td>
+                                ${assignedMentor ? `
+                                    <div class="assigned-mentor-badge">👨‍🏫 ${assignedMentor.name}</div>
+                                    <button class="assign-btn" style="margin-top:8px;background:#ef4444" onclick="assignMentor(${sub.id}, '')">Unassign</button>
+                                ` : `
+                                    <select id="mentor-sel-${sub.id}" class="mentor-select">
+                                        <option value="">-- Select Mentor --</option>
+                                        ${mentorOptions}
+                                    </select>
+                                    <button class="assign-btn" onclick="assignMentor(${sub.id}, document.getElementById('mentor-sel-${sub.id}').value)">Assign</button>
+                                `}
+                            </td>
+                            <td style="color:var(--muted);font-size:0.82em">${new Date(sub.timestamp).toLocaleDateString()}</td>
+                            <td>
+                                <button onclick='openEditModal(${JSON.stringify(sub).replace(/'/g,"&#39;")})' style="background:linear-gradient(135deg,var(--primary),var(--secondary));color:white;border:none;border-radius:8px;padding:7px 12px;cursor:pointer;font-size:0.82em;font-weight:700;font-family:'DM Sans',sans-serif;white-space:nowrap;transition:all 0.2s" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">✏️ Edit</button>
+                            </td>
+                        </tr>`;
+                    }).join('')}
+                </tbody>
+            </table>`;
+    }
+
+    async function selectProject(submissionId, projectIndex, projectTitle) {
+        try {
+            const res = await fetch(`${API_BASE_URL}/select_project.php`, {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ submission_id: submissionId, project_index: projectIndex, project_title: projectTitle })
+            });
+            const result = await res.json();
+            if (result.success) loadSubmissions();
+            else alert('Error: ' + result.message);
+        } catch(e) { alert('Error: ' + e.message); }
+    }
+
+    async function updateStatus(submissionId, status) {
+        try {
+            const res = await fetch(`${API_BASE_URL}/update_status.php`, {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ submission_id: submissionId, status })
+            });
+            const data = await res.json();
+            if (!data.success) alert('Error updating status: ' + data.message);
+        } catch(e) { console.warn('Status update failed (demo mode)'); }
+    }
+
+    async function assignMentor(submissionId, mentorId) {
+        try {
+            const res = await fetch(`${API_BASE_URL}/assign_mentor.php`, {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ submission_id: submissionId, mentor_id: mentorId || null })
+            });
+            const data = await res.json();
+            if (data.success) loadSubmissions();
+            else alert('Error: ' + data.message);
+        } catch { loadSubmissions(); } // reload to reflect demo state
+    }
+
+    // ============================================================
+    // STUDENT STATUS CHECK
+    // ============================================================
+    async function checkStatus() {
+        const email = document.getElementById('status-email-input').value.trim();
+        const container = document.getElementById('status-results');
+        if (!email) { container.innerHTML = '<p style="color:var(--danger)">Please enter your group email.</p>'; return; }
+        container.innerHTML = '<p style="color:var(--muted)">Searching…</p>';
+        try {
+            const res = await fetch(`${API_BASE_URL}/get_status.php?email=${encodeURIComponent(email)}`);
+            const data = await res.json();
+            if (!data.success || !data.submission) {
+                container.innerHTML = `<div class="no-submissions"><h3>No submission found</h3><p>No submission found for <strong>${email}</strong>.<br>Please check the email and try again.</p></div>`;
+                return;
+            }
+            renderStudentStatus(data.submission);
+        } catch {
+            container.innerHTML = `<div class="no-submissions"><h3>Could not connect to server</h3><p>Make sure your PHP backend is running.</p></div>`;
+        }
+    }
+
+    function renderStudentStatus(sub) {
+        const container = document.getElementById('status-results');
+        const sel = sub.selection;
+        const leader = sub.members?.find(m => m.role === 'Team Leader') || sub.members?.[0];
+
+        // Derive the most accurate effective status
+        let s = sub.status || 'pending';
+        if (s === 'pending' && sel && sub.mentor) s = 'approved'; // project selected + mentor assigned → approved
+
+        const statusColor = { approved: 'status-approved', rejected: 'status-rejected', pending: 'status-pending' };
+        const statusLabel = { approved: '✅ Approved', rejected: '❌ Rejected', pending: '⏳ Pending' };
+
+        // Build a friendly step-by-step progress indicator
+        const steps = [
+            { done: true,        label: 'Submission Received',   icon: '📥' },
+            { done: !!sel,       label: 'Project Selected',      icon: '📌' },
+            { done: !!sub.mentor,label: 'Mentor Assigned',       icon: '👨‍🏫' },
+            { done: s==='approved', label: 'Approved',           icon: '✅' },
+        ];
+
+        container.innerHTML = `
+            <div class="status-card">
+                <div class="status-card-header">
+                    <h3>📄 Submission for ${sub.groupEmail}</h3>
+                    <span class="status-badge ${statusColor[s]}">${statusLabel[s]}</span>
+                </div>
+
+                <!-- Progress Steps -->
+                <div style="display:flex;align-items:center;gap:0;margin:18px 0 22px;flex-wrap:wrap;gap:4px">
+                    ${steps.map((step, i) => `
+                        <div style="display:flex;align-items:center;gap:4px;flex:1;min-width:120px">
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;width:100%">
+                                <div style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1em;
+                                    background:${step.done ? 'linear-gradient(135deg,var(--primary),var(--secondary))' : '#e2e8f0'};
+                                    color:${step.done ? 'white' : '#94a3b8'};
+                                    box-shadow:${step.done ? '0 2px 8px rgba(79,70,229,0.3)' : 'none'};
+                                    transition:all 0.3s">
+                                    ${step.done ? '✓' : step.icon}
+                                </div>
+                                <span style="font-size:0.72em;font-weight:600;color:${step.done ? 'var(--primary)' : '#94a3b8'};text-align:center;white-space:nowrap">${step.label}</span>
+                            </div>
+                            ${i < steps.length - 1 ? `<div style="flex:1;height:2px;background:${steps[i+1].done ? 'var(--primary)' : '#e2e8f0'};margin-bottom:20px;min-width:12px"></div>` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+
+                <div class="status-row">
+                    <span class="status-label">Team Leader</span>
+                    <span class="status-value">${leader ? leader.name : '—'}</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Submitted On</span>
+                    <span class="status-value">${new Date(sub.timestamp).toLocaleString()}</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Selected Project</span>
+                    <span class="status-value">${sel
+                        ? `<strong>Project ${sel.index+1}:</strong> ${sel.title}`
+                        : '<em style="color:var(--muted)">Not yet selected by admin</em>'}</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Approval Status</span>
+                    <span class="status-value"><span class="status-badge ${statusColor[s]}">${statusLabel[s]}</span>
+                        ${s === 'pending' && !sel ? '<span style="font-size:0.82em;color:var(--muted);margin-left:8px">Awaiting project selection by admin</span>' : ''}
+                        ${s === 'pending' && sel && !sub.mentor ? '<span style="font-size:0.82em;color:var(--muted);margin-left:8px">Awaiting mentor assignment</span>' : ''}
+                    </span>
+                </div>
+
+                ${sub.mentor ? `
+                    <div class="mentor-info-box">
+                        <div class="mentor-avatar">${sub.mentor.name.charAt(0)}</div>
+                        <div class="mentor-details">
+                            <h4>${sub.mentor.name}</h4>
+                            <p>Assigned Mentor • ${sub.mentor.department}${sub.mentor.email ? ' • ' + sub.mentor.email : ''}</p>
+                        </div>
+                    </div>
+                ` : `
+                    <div class="no-mentor-box">
+                        👨‍🏫 No mentor assigned yet. Please check back later.
+                    </div>
+                `}
+
+                <div style="margin-top:20px">
+                    <h4 style="font-family:'Syne',sans-serif;margin-bottom:12px;color:var(--text)">All Submitted Projects</h4>
+                    ${sub.projects.map((p,i) => `
+                        <div style="background:var(--bg);border-radius:10px;padding:14px;margin-bottom:10px;${sel && sel.index===i ? 'border:2px solid var(--success);background:#f0fdf4' : ''}">
+                            <div style="font-weight:700;color:var(--secondary);margin-bottom:4px">
+                                Project ${i+1}: ${p.title}
+                                ${sel && sel.index===i ? '<span style="background:#d1fae5;color:#065f46;padding:2px 10px;border-radius:20px;font-size:0.78em;margin-left:8px">✓ Selected</span>' : ''}
+                            </div>
+                            <div style="color:var(--muted);font-size:0.9em">${p.description}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>`;
+    }
+
+    // ============================================================
+    // ACADEMIC FILTER & OVERVIEW
+    // ============================================================
+    let allSubmissionsCache = [];
+
+    async function loadAcademicData() {
+        const resultsEl = document.getElementById('academic-results');
+        resultsEl.innerHTML = '<p style="color:var(--muted);text-align:center;padding:40px">Loading…</p>';
+        try {
+            const res = await fetch(`${API_BASE_URL}/get_submissions.php`);
+            const data = await res.json();
+            if (data.success) {
+                allSubmissionsCache = data.submissions;
+                applyFilters();
+            } else throw new Error(data.message);
+        } catch(e) {
+            // Demo fallback data
+            if (allSubmissionsCache.length === 0) {
+                allSubmissionsCache = [
+                    { id:1, groupEmail:'ce_group1@college.edu', timestamp: new Date().toISOString(), status:'approved',
+                      members:[{name:'Rahul Sharma',year:'BE',department:'Computer Engineering',role:'Team Leader'},{name:'Priya Singh',year:'BE',department:'Computer Engineering',role:'Member'}],
+                      projects:[{title:'AI Chat Bot',description:'A smart chatbot using NLP'},{title:'Smart Parking',description:'IoT based parking system'},{title:'E-Learning Platform',description:'Online education platform'}],
+                      selection:{index:0,title:'AI Chat Bot'}, mentor:{name:'Dr. Ramesh Kumar',department:'Computer Engineering',email:'ramesh@college.edu'} },
+                    { id:2, groupEmail:'it_group1@college.edu', timestamp: new Date().toISOString(), status:'pending',
+                      members:[{name:'Sneha Patil',year:'TE',department:'Information Technology',role:'Team Leader'},{name:'Amit Kumar',year:'TE',department:'Information Technology',role:'Member'}],
+                      projects:[{title:'Blockchain Voting',description:'Secure online voting system'},{title:'Smart Health',description:'Health monitoring app'},{title:'AR Education',description:'AR based learning tool'}],
+                      selection:null, mentor:null },
+                    { id:3, groupEmail:'mech_group1@college.edu', timestamp: new Date().toISOString(), status:'rejected',
+                      members:[{name:'Vikram Rao',year:'SE',department:'Mechanical Engineering',role:'Team Leader'}],
+                      projects:[{title:'3D Printing Drone',description:'3D printed drone design'},{title:'Smart Hydro',description:'Smart hydroponics system'},{title:'CNC Automation',description:'Automated CNC controller'}],
+                      selection:{index:1,title:'Smart Hydro'}, mentor:null },
+                    { id:4, groupEmail:'ce_group2@college.edu', timestamp: new Date().toISOString(), status:'approved',
+                      members:[{name:'Anita Desai',year:'FE',department:'Computer Engineering',role:'Team Leader'},{name:'Rohan Mehta',year:'FE',department:'Information Technology',role:'Member'}],
+                      projects:[{title:'Campus Map App',description:'Digital campus navigator'},{title:'Attendance System',description:'Face recognition attendance'},{title:'Event Portal',description:'College event management'}],
+                      selection:{index:2,title:'Event Portal'}, mentor:{name:'Prof. Sunita Sharma',department:'Information Technology',email:'sunita@college.edu'} },
+                    { id:5, groupEmail:'extc_group1@college.edu', timestamp: new Date().toISOString(), status:'pending',
+                      members:[{name:'Karan Joshi',year:'BE',department:'Electronics & Telecommunication',role:'Team Leader'}],
+                      projects:[{title:'Smart Grid Monitor',description:'IoT grid monitoring system'},{title:'5G Antenna Design',description:'Custom 5G antenna module'},{title:'FPGA Processor',description:'Custom FPGA processor design'}],
+                      selection:null, mentor:null },
+                    { id:6, groupEmail:'it_group2@college.edu', timestamp: new Date().toISOString(), status:'approved',
+                      members:[{name:'Pooja Verma',year:'TE',department:'Information Technology',role:'Team Leader'},{name:'Suresh Nair',year:'TE',department:'Computer Engineering',role:'Member'}],
+                      projects:[{title:'Food Delivery App',description:'Hyperlocal food delivery'},{title:'Job Portal',description:'Student job hunting platform'},{title:'Budget Tracker',description:'Personal finance tracker'}],
+                      selection:{index:0,title:'Food Delivery App'}, mentor:{name:'Dr. Anil Patil',department:'Electronics',email:'anil@college.edu'} }
+                ];
+            }
+            applyFilters();
+        }
+    }
+
+    function applyFilters() {
+        const year   = document.getElementById('filter-year')?.value   || '';
+        const sem    = document.getElementById('filter-sem')?.value    || '';
+        const dept   = document.getElementById('filter-dept')?.value   || '';
+        const status = document.getElementById('filter-status')?.value || '';
+
+        const semToYear = { SEM1:'FE', SEM2:'FE', SEM3:'SE', SEM4:'SE', SEM5:'TE', SEM6:'TE', SEM7:'BE', SEM8:'BE' };
+        const semYear = semToYear[sem] || '';
+
+        let filtered = allSubmissionsCache.filter(sub => {
+            return sub.members.some(m => {
+                const yearMatch = !year   || m.year === year;
+                const deptMatch = !dept   || m.department.toLowerCase().includes(dept.toLowerCase());
+                const semMatch  = !sem    || m.year === semYear;
+                return yearMatch && deptMatch && semMatch;
+            }) && (!status || (sub.status || 'pending') === status);
+        });
+
+        renderAcademicStats(filtered, allSubmissionsCache.length);
+        renderYearBreakdown(filtered);
+        renderDeptBreakdown(filtered);
+        renderAcademicTable(filtered);
+    }
+
+    function renderAcademicStats(filtered, total) {
+        const statsEl = document.getElementById('academic-stats');
+        if (!statsEl) return;
+        const approved = filtered.filter(s => s.status === 'approved').length;
+        const pending  = filtered.filter(s => !s.status || s.status === 'pending').length;
+        const rejected = filtered.filter(s => s.status === 'rejected').length;
+
+        const card = (icon, label, value, bg, color) =>
+            `<div style="background:${bg};border-radius:14px;padding:18px;text-align:center;border:1px solid ${color}22">
+                <div style="font-size:1.8em;margin-bottom:6px">${icon}</div>
+                <div style="font-size:1.8em;font-weight:800;color:${color};font-family:'Syne',sans-serif;line-height:1">${value}</div>
+                <div style="font-size:0.78em;color:${color};font-weight:600;margin-top:4px;opacity:0.85;text-transform:uppercase;letter-spacing:0.5px">${label}</div>
+            </div>`;
+
+        statsEl.innerHTML =
+            card('📋','Showing', filtered.length, '#ede9fe', '#5b21b6') +
+            card('📊','Total',   total,            '#e0f2fe', '#0369a1') +
+            card('✅','Approved',approved,          '#d1fae5', '#065f46') +
+            card('⏳','Pending', pending,           '#fef3c7', '#92400e') +
+            card('❌','Rejected',rejected,          '#fee2e2', '#991b1b');
+    }
+
+    function renderYearBreakdown(filtered) {
+        const el = document.getElementById('academic-year-breakdown');
+        if (!el) return;
+        const years = [
+            { key:'FE', label:'First Year',  icon:'🌱', color:'#0891b2', bg:'#e0f2fe' },
+            { key:'SE', label:'Second Year', icon:'📘', color:'#7c3aed', bg:'#ede9fe' },
+            { key:'TE', label:'Third Year',  icon:'🔬', color:'#059669', bg:'#d1fae5' },
+            { key:'BE', label:'Final Year',  icon:'🏆', color:'#d97706', bg:'#fef3c7' }
+        ];
+
+        el.innerHTML = years.map(y => {
+            const subs      = filtered.filter(s => s.members.some(m => m.year === y.key));
+            const approved  = subs.filter(s => s.status === 'approved').length;
+            const pending   = subs.filter(s => !s.status || s.status === 'pending').length;
+            const rejected  = subs.filter(s => s.status === 'rejected').length;
+            const total     = subs.length;
+            const pct       = allSubmissionsCache.length ? Math.round((total / allSubmissionsCache.filter(s => s.members.some(m => m.year === y.key)).length) * 100) || 0 : 0;
+
+            return `<div style="background:white;border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:0 1px 6px rgba(0,0,0,0.04)">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+                    <div style="background:${y.bg};border-radius:10px;width:42px;height:42px;display:flex;align-items:center;justify-content:center;font-size:1.4em;flex-shrink:0">${y.icon}</div>
+                    <div>
+                        <div style="font-family:'Syne',sans-serif;font-weight:800;color:var(--text);font-size:1em">${y.key} — ${y.label}</div>
+                        <div style="font-size:0.8em;color:var(--muted)">${total} submission${total !== 1 ? 's' : ''}</div>
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
+                    <div style="text-align:center;background:#d1fae5;border-radius:8px;padding:8px 4px">
+                        <div style="font-size:1.2em;font-weight:800;color:#065f46;font-family:'Syne',sans-serif">${approved}</div>
+                        <div style="font-size:0.72em;color:#065f46;font-weight:600">Approved</div>
+                    </div>
+                    <div style="text-align:center;background:#fef3c7;border-radius:8px;padding:8px 4px">
+                        <div style="font-size:1.2em;font-weight:800;color:#92400e;font-family:'Syne',sans-serif">${pending}</div>
+                        <div style="font-size:0.72em;color:#92400e;font-weight:600">Pending</div>
+                    </div>
+                    <div style="text-align:center;background:#fee2e2;border-radius:8px;padding:8px 4px">
+                        <div style="font-size:1.2em;font-weight:800;color:#991b1b;font-family:'Syne',sans-serif">${rejected}</div>
+                        <div style="font-size:0.72em;color:#991b1b;font-weight:600">Rejected</div>
+                    </div>
+                </div>
+                <div style="background:var(--bg);border-radius:6px;height:8px;overflow:hidden">
+                    <div style="height:100%;width:${total > 0 ? Math.min(100, Math.round(approved/total*100)) : 0}%;background:linear-gradient(90deg,${y.color},${y.color}88);border-radius:6px;transition:width 0.6s"></div>
+                </div>
+                <div style="font-size:0.76em;color:var(--muted);margin-top:5px">${total > 0 ? Math.round(approved/total*100) : 0}% approval rate</div>
+            </div>`;
+        }).join('');
+    }
+
+    function renderDeptBreakdown(filtered) {
+        const el = document.getElementById('academic-dept-breakdown');
+        if (!el) return;
+
+        // Count per department from member data
+        const deptMap = {};
+        filtered.forEach(sub => {
+            const seen = new Set();
+            sub.members.forEach(m => {
+                const dept = m.department || 'Unknown';
+                if (!seen.has(dept)) {
+                    seen.add(dept);
+                    if (!deptMap[dept]) deptMap[dept] = { total:0, approved:0, pending:0, rejected:0, years:{FE:0,SE:0,TE:0,BE:0} };
+                    deptMap[dept].total++;
+                    const s = sub.status || 'pending';
+                    deptMap[dept][s]++;
+                    if (m.year) deptMap[dept].years[m.year] = (deptMap[dept].years[m.year] || 0) + 1;
+                }
+            });
+        });
+
+        const deptIcons = {
+            'Computer Engineering':'💻','Information Technology':'🌐','Electronics & Telecommunication':'📡',
+            'Electronics':'📡','Mechanical Engineering':'⚙️','Civil Engineering':'🏗️',
+            'Electrical Engineering':'⚡','AIDS / Data Science':'🤖','Chemical Engineering':'🧪','Other':'📚'
+        };
+        const deptColors = ['#4f46e5','#0891b2','#7c3aed','#059669','#d97706','#dc2626','#0284c7','#9333ea','#16a34a'];
+
+        const entries = Object.entries(deptMap).sort((a,b) => b[1].total - a[1].total);
+        const maxTotal = entries.length ? entries[0][1].total : 1;
+
+        if (entries.length === 0) {
+            el.innerHTML = '<p style="color:var(--muted);text-align:center;padding:20px;grid-column:1/-1">No data matching current filters.</p>';
+            return;
+        }
+
+        el.innerHTML = entries.map(([dept, data], i) => {
+            const icon  = deptIcons[dept] || '📚';
+            const color = deptColors[i % deptColors.length];
+            const barW  = Math.round((data.total / maxTotal) * 100);
+            const approvalPct = data.total ? Math.round((data.approved / data.total) * 100) : 0;
+            const yearBadges = Object.entries(data.years).filter(([,v]) => v > 0)
+                .map(([yr, cnt]) => `<span style="background:rgba(79,70,229,0.1);color:var(--primary);border-radius:20px;padding:2px 8px;font-size:0.72em;font-weight:700">${yr}: ${cnt}</span>`).join('');
+
+            return `<div style="background:white;border:1px solid var(--border);border-radius:12px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,0.04)">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+                    <div style="font-size:1.5em">${icon}</div>
+                    <div style="flex:1;min-width:0">
+                        <div style="font-weight:700;color:var(--text);font-size:0.88em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${dept}</div>
+                        <div style="font-size:0.78em;color:var(--muted)">${data.total} group${data.total !== 1 ? 's' : ''}</div>
+                    </div>
+                    <div style="background:${color}18;color:${color};border-radius:20px;padding:3px 10px;font-size:0.75em;font-weight:800;white-space:nowrap">${approvalPct}% ✓</div>
+                </div>
+                <div style="background:var(--bg);border-radius:6px;height:7px;overflow:hidden;margin-bottom:10px">
+                    <div style="height:100%;width:${barW}%;background:linear-gradient(90deg,${color},${color}99);border-radius:6px"></div>
+                </div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+                    ${data.approved ? `<span style="background:#d1fae5;color:#065f46;border-radius:20px;padding:2px 8px;font-size:0.72em;font-weight:700">✅ ${data.approved}</span>` : ''}
+                    ${data.pending  ? `<span style="background:#fef3c7;color:#92400e;border-radius:20px;padding:2px 8px;font-size:0.72em;font-weight:700">⏳ ${data.pending}</span>`  : ''}
+                    ${data.rejected ? `<span style="background:#fee2e2;color:#991b1b;border-radius:20px;padding:2px 8px;font-size:0.72em;font-weight:700">❌ ${data.rejected}</span>` : ''}
+                </div>
+                <div style="display:flex;gap:4px;flex-wrap:wrap">${yearBadges}</div>
+            </div>`;
+        }).join('');
+    }
+
+    function renderAcademicTable(filtered) {
+        const resultsEl = document.getElementById('academic-results');
+        if (!resultsEl) return;
+        if (filtered.length === 0) {
+            resultsEl.innerHTML = `<div class="no-submissions"><h3>No submissions found</h3><p>Try changing or resetting the filters.</p></div>`;
+            return;
+        }
+
+        const sColor = { approved:'#d1fae5', rejected:'#fee2e2', pending:'#fef3c7' };
+        const sText  = { approved:'✅ Approved', rejected:'❌ Rejected', pending:'⏳ Pending' };
+        const sTxt   = { approved:'#065f46', rejected:'#991b1b', pending:'#92400e' };
+
+        resultsEl.innerHTML = `
+            <div style="overflow-x:auto">
+            <table class="submissions-table">
+                <thead><tr>
+                    <th>#</th>
+                    <th>Team Leader</th>
+                    <th>Members & Year / Dept</th>
+                    <th>Selected Project</th>
+                    <th>Status</th>
+                    <th>Assigned Mentor</th>
+                    <th>Submitted</th>
+                </tr></thead>
+                <tbody>
+                    ${filtered.map((sub, idx) => {
+                        const leader = sub.members.find(m => m.role === 'Team Leader') || sub.members[0];
+                        const sel    = sub.selection;
+                        const s      = sub.status || 'pending';
+                        const mentor = sub.mentor;
+                        return `<tr>
+                            <td><strong style="color:var(--primary)">${idx + 1}</strong></td>
+                            <td>
+                                <strong>${leader.name}</strong><br>
+                                <span style="font-size:0.8em;color:var(--muted)">${sub.groupEmail}</span>
+                            </td>
+                            <td>
+                                <ul class="member-list">
+                                    ${sub.members.map(m => `
+                                        <li>
+                                            <strong>${m.name}</strong>${m.role === 'Team Leader' ? ' <em style="color:var(--primary);font-size:0.78em">(Leader)</em>' : ''}<br>
+                                            <span style="font-size:0.8em;color:#94a3b8">
+                                                📅 <strong>${m.year || '—'}</strong> &nbsp;|&nbsp; 🏫 ${m.department || '—'}
+                                            </span>
+                                        </li>`).join('')}
+                                </ul>
+                            </td>
+                            <td>${sel
+                                ? `<strong style="color:var(--secondary);font-size:0.88em">Project ${sel.index + 1}</strong><br><span style="font-size:0.82em;color:var(--muted)">${sel.title}</span>`
+                                : '<span style="color:#94a3b8;font-size:0.83em">Not selected</span>'
+                            }</td>
+                            <td>
+                                <span style="background:${sColor[s]};color:${sTxt[s]};padding:4px 12px;border-radius:20px;font-size:0.78em;font-weight:700;display:inline-block;white-space:nowrap">
+                                    ${sText[s]}
+                                </span>
+                            </td>
+                            <td>${mentor
+                                ? `<span style="font-size:0.83em;font-weight:600;color:var(--secondary)">👨‍🏫 ${mentor.name}</span><br><span style="font-size:0.78em;color:var(--muted)">${mentor.department}</span>`
+                                : '<span style="color:#94a3b8;font-size:0.82em">Not assigned</span>'
+                            }</td>
+                            <td style="color:var(--muted);font-size:0.8em;white-space:nowrap">${new Date(sub.timestamp).toLocaleDateString()}</td>
+                        </tr>`;
+                    }).join('')}
+                </tbody>
+            </table>
+            </div>`;
+    }
+
+    function resetFilters() {
+        document.getElementById('filter-year').value   = '';
+        document.getElementById('filter-sem').value    = '';
+        document.getElementById('filter-dept').value   = '';
+        document.getElementById('filter-status').value = '';
+        applyFilters();
+    }
+
+    // ============================================================
+    // REGISTER
+    // ============================================================
+    let registerRole = 'student';
+
+    function showRegister(role) {
+        registerRole = role;
+        const titles = { student: '🎓 Student Registration', admin: '🛠️ Admin Registration', coordinator: '🏫 Coordinator Registration' };
+        const subtitles = { student: 'Create your student account to submit projects.', admin: 'Create a new admin/mentor account.', coordinator: 'Create a coordinator account for your department.' };
+        document.getElementById('register-title').textContent    = titles[role] || 'Create Account';
+        document.getElementById('register-subtitle').textContent = subtitles[role] || '';
+        document.getElementById('register-student-fields').style.display     = role === 'student'     ? 'block' : 'none';
+        document.getElementById('register-admin-fields').style.display       = role === 'admin'       ? 'block' : 'none';
+        document.getElementById('register-coordinator-fields').style.display = role === 'coordinator' ? 'block' : 'none';
+        ['reg-name','reg-email','reg-username','reg-coord-username','reg-coord-dept','reg-password','reg-confirm'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+        document.getElementById('register-alert').style.display   = 'none';
+        document.getElementById('register-success').style.display = 'none';
+        document.getElementById('register-modal').style.display   = 'flex';
+    }
+
+    function closeRegister() {
+        document.getElementById('register-modal').style.display = 'none';
+    }
+
+    function toggleRegPwd(inputId, btn) {
+        const el = document.getElementById(inputId);
+        if (!el) return;
+        el.type = el.type === 'password' ? 'text' : 'password';
+        btn.textContent = el.type === 'password' ? '👁️' : '🙈';
+    }
+
+    async function doRegister() {
+        const alertEl   = document.getElementById('register-alert');
+        const successEl = document.getElementById('register-success');
+        alertEl.style.display = 'none';
+        successEl.style.display = 'none';
+
+        const password = document.getElementById('reg-password').value;
+        const confirm  = document.getElementById('reg-confirm').value;
+
+        if (password.length < 6)      { alertEl.textContent = 'Password must be at least 6 characters.'; alertEl.style.display='block'; return; }
+        if (password !== confirm)      { alertEl.textContent = 'Passwords do not match.'; alertEl.style.display='block'; return; }
+
+        const btn = document.getElementById('reg-submit-btn');
+        btn.textContent = 'Creating…'; btn.style.opacity='0.7'; btn.style.pointerEvents='none';
+
+        if (registerRole === 'student') {
+            const email = document.getElementById('reg-email').value.trim();
+            const name  = document.getElementById('reg-name').value.trim();
+            if (!email) { alertEl.textContent = 'Email is required.'; alertEl.style.display='block'; btn.textContent='Create Account'; btn.style.opacity=''; btn.style.pointerEvents=''; return; }
+
+            try {
+                const res  = await fetch(`${API_BASE_URL}/register.php`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ role:'student', email, name, password }) });
+                const data = await res.json();
+                if (data.success) {
+                    successEl.textContent = '✅ Account created! You can now log in with your email and password.';
+                    successEl.style.display = 'block';
+                    setTimeout(closeRegister, 2500);
+                } else { alertEl.textContent = data.message || 'Registration failed.'; alertEl.style.display='block'; }
+            } catch {
+                // Offline: show SQL for manual DB insert
+                const sqlSnippet = `INSERT INTO students (email, name, password_hash) VALUES ('${email}', '${name || email}', password_hash('${password}'));`;
+                successEl.innerHTML = `✅ <strong>Registration info generated!</strong><br><br>Since the server is offline, give this SQL to your database admin:<br><code style="background:#f1f5f9;padding:6px 8px;border-radius:6px;display:block;margin-top:8px;font-size:0.82em;word-break:break-all">${sqlSnippet}</code>`;
+                successEl.style.display = 'block';
+            }
+        } else if (registerRole === 'coordinator') {
+            const username = document.getElementById('reg-coord-username').value.trim();
+            const dept     = document.getElementById('reg-coord-dept').value;
+            if (!username) { alertEl.textContent = 'Username is required.'; alertEl.style.display='block'; btn.textContent='Create Account'; btn.style.opacity=''; btn.style.pointerEvents=''; return; }
+            if (!dept)     { alertEl.textContent = 'Department is required.'; alertEl.style.display='block'; btn.textContent='Create Account'; btn.style.opacity=''; btn.style.pointerEvents=''; return; }
+            try {
+                const res  = await fetch(`${API_BASE_URL}/register.php`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ role:'coordinator', username, department: dept, password }) });
+                const data = await res.json();
+                if (data.success) {
+                    successEl.textContent = '✅ Coordinator account created! You can now log in.';
+                    successEl.style.display = 'block';
+                    setTimeout(closeRegister, 2500);
+                } else { alertEl.textContent = data.message || 'Registration failed.'; alertEl.style.display='block'; }
+            } catch {
+                const sqlSnippet = `INSERT INTO coordinators (username, department, password_hash) VALUES ('${username}', '${dept}', PASSWORD('${password}'));`;
+                successEl.innerHTML = `✅ <strong>Registration info generated!</strong><br><br>Give this SQL to your database admin:<br><code style="background:#f1f5f9;padding:6px 8px;border-radius:6px;display:block;margin-top:8px;font-size:0.82em;word-break:break-all">${sqlSnippet}</code>`;
+                successEl.style.display = 'block';
+            }
+        } else {
+            const username = document.getElementById('reg-username').value.trim();
+            if (!username) { alertEl.textContent = 'Username is required.'; alertEl.style.display='block'; btn.textContent='Create Account'; btn.style.opacity=''; btn.style.pointerEvents=''; return; }
+
+            try {
+                const res  = await fetch(`${API_BASE_URL}/register.php`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ role:'admin', username, password }) });
+                const data = await res.json();
+                if (data.success) {
+                    successEl.textContent = '✅ Admin account created! You can now log in.';
+                    successEl.style.display = 'block';
+                    setTimeout(closeRegister, 2500);
+                } else { alertEl.textContent = data.message || 'Registration failed.'; alertEl.style.display='block'; }
+            } catch {
+                const sqlSnippet = `INSERT INTO admins (username, password_hash) VALUES ('${username}', PASSWORD('${password}'));`;
+                successEl.innerHTML = `✅ <strong>Registration info generated!</strong><br><br>Give this SQL to your database admin:<br><code style="background:#f1f5f9;padding:6px 8px;border-radius:6px;display:block;margin-top:8px;font-size:0.82em;word-break:break-all">${sqlSnippet}</code>`;
+                successEl.style.display = 'block';
+            }
+        }
+
+        btn.textContent = 'Create Account'; btn.style.opacity=''; btn.style.pointerEvents='';
+    }
+
+    // Close register modal on backdrop click
+    document.getElementById('register-modal')?.addEventListener('click', function(e) {
+        if (e.target === this) closeRegister();
+    });
+
+    // ============================================================
+    // ADMIN EDIT SUBMISSION MODAL
+    // ============================================================
+    let editingSubmission = null;
+
+    function openEditModal(sub) {
+        editingSubmission = sub;
+        const deptOptions = ['Computer Engineering','Information Technology','Electronics & Telecommunication','Mechanical Engineering','Civil Engineering','Electrical Engineering','AIDS / Data Science','Chemical Engineering','Other'];
+        const deptSelect = (id, val) => `<select id="${id}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:0.9em;color:var(--text);background:white">
+            <option value="">Select Department</option>
+            ${deptOptions.map(d => `<option value="${d}" ${val===d?'selected':''}>${d}</option>`).join('')}
+        </select>`;
+        const yearSelect = (id, val) => `<select id="${id}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:0.9em;color:var(--text);background:white">
+            <option value="">Select Year</option>
+            ${['FE','SE','TE','BE'].map(y => `<option value="${y}" ${val===y?'selected':''}>${y}</option>`).join('')}
+        </select>`;
+
+        const members = sub.members || [];
+        // Pad to 4
+        while (members.length < 4) members.push({ name:'', year:'', department:'', role:'Member' });
+
+        const body = document.getElementById('edit-modal-body');
+        body.innerHTML = `
+            <!-- Group Email -->
+            <div style="margin-bottom:22px">
+                <label style="display:block;font-size:0.78em;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Group Email</label>
+                <input id="edit-group-email" type="email" value="${sub.groupEmail||''}" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:0.95em;color:var(--text)">
+            </div>
+
+            <!-- Members -->
+            <div style="background:var(--bg);border-radius:12px;padding:18px;margin-bottom:22px">
+                <h3 style="font-family:'Syne',sans-serif;font-size:0.95em;color:var(--primary);margin-bottom:16px;text-transform:uppercase;letter-spacing:0.5px">👥 Group Members</h3>
+                ${members.map((m, i) => `
+                    <div style="background:white;border-radius:10px;padding:14px;margin-bottom:12px;border:1px solid var(--border)">
+                        <div style="font-size:0.8em;font-weight:700;color:var(--secondary);margin-bottom:10px">${i===0?'👑 Team Leader':`Member ${i+1}`}</div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+                            <div>
+                                <label style="display:block;font-size:0.75em;font-weight:600;color:var(--muted);margin-bottom:4px">FULL NAME${i<3?' *':''}</label>
+                                <input id="edit-m${i}-name" type="text" value="${m.name||''}" placeholder="Enter name" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:0.9em;color:var(--text)">
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:0.75em;font-weight:600;color:var(--muted);margin-bottom:4px">YEAR${i<3?' *':''}</label>
+                                ${yearSelect(`edit-m${i}-year`, m.year)}
+                            </div>
+                        </div>
+                        <div>
+                            <label style="display:block;font-size:0.75em;font-weight:600;color:var(--muted);margin-bottom:4px">DEPARTMENT${i<3?' *':''}</label>
+                            ${deptSelect(`edit-m${i}-dept`, m.department)}
+                        </div>
+                    </div>`).join('')}
+            </div>
+
+            <!-- Projects -->
+            <div style="background:var(--bg);border-radius:12px;padding:18px">
+                <h3 style="font-family:'Syne',sans-serif;font-size:0.95em;color:var(--primary);margin-bottom:16px;text-transform:uppercase;letter-spacing:0.5px">💡 Project Ideas</h3>
+                ${(sub.projects||[]).map((p, i) => `
+                    <div style="background:white;border-radius:10px;padding:14px;margin-bottom:12px;border:1px solid var(--border)">
+                        <div style="font-size:0.8em;font-weight:700;color:var(--secondary);margin-bottom:10px">Project ${i+1}</div>
+                        <div style="margin-bottom:10px">
+                            <label style="display:block;font-size:0.75em;font-weight:600;color:var(--muted);margin-bottom:4px">TITLE *</label>
+                            <input id="edit-p${i}-title" type="text" value="${(p.title||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:0.9em;color:var(--text)">
+                        </div>
+                        <div>
+                            <label style="display:block;font-size:0.75em;font-weight:600;color:var(--muted);margin-bottom:4px">DESCRIPTION *</label>
+                            <textarea id="edit-p${i}-desc" rows="3" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:0.9em;color:var(--text);resize:vertical">${p.description||''}</textarea>
+                        </div>
+                    </div>`).join('')}
+            </div>`;
+
+        const modal = document.getElementById('edit-modal');
+        modal.style.display = 'flex';
+        requestAnimationFrame(() => modal.style.opacity = '1');
+    }
+
+    function closeEditModal() {
+        document.getElementById('edit-modal').style.display = 'none';
+        editingSubmission = null;
+    }
+
+    async function saveEditSubmission() {
+        if (!editingSubmission) return;
+        const sub = editingSubmission;
+
+        // Collect members
+        const updatedMembers = [0,1,2,3].map(i => ({
+            name:       document.getElementById(`edit-m${i}-name`)?.value.trim() || '',
+            year:       document.getElementById(`edit-m${i}-year`)?.value || '',
+            department: document.getElementById(`edit-m${i}-dept`)?.value || '',
+            role:       i === 0 ? 'Team Leader' : 'Member',
+            member_order: i
+        })).filter((m, i) => i < 3 || m.name); // keep m4 only if name filled
+
+        // Validate
+        if (!updatedMembers[0]?.name) { alert('Team Leader name is required.'); return; }
+
+        // Collect projects
+        const updatedProjects = (sub.projects||[]).map((_, i) => ({
+            title:       document.getElementById(`edit-p${i}-title`)?.value.trim() || '',
+            description: document.getElementById(`edit-p${i}-desc`)?.value.trim() || ''
+        }));
+
+        const groupEmail = document.getElementById('edit-group-email').value.trim();
+
+        // Save to server (or demo update)
+        try {
+            await fetch(`${API_BASE_URL}/update_submission.php`, {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ submission_id: sub.id, groupEmail, members: updatedMembers, projects: updatedProjects })
+            });
+        } catch(e) { /* offline: apply locally */ }
+
+        // Apply locally so UI updates immediately
+        const idx = (window._submissionsData || []).findIndex(s => s.id === sub.id);
+        if (idx !== -1) {
+            window._submissionsData[idx].members  = updatedMembers;
+            window._submissionsData[idx].projects = updatedProjects;
+            window._submissionsData[idx].groupEmail = groupEmail;
+            renderSubmissions(window._submissionsData);
+        } else {
+            loadSubmissions();
+        }
+
+        closeEditModal();
+
+        // Toast
+        const toast = document.createElement('div');
+        toast.textContent = '✅ Submission updated successfully!';
+        toast.style.cssText = 'position:fixed;bottom:28px;right:28px;background:linear-gradient(135deg,#059669,#10b981);color:white;padding:13px 22px;border-radius:12px;font-weight:700;font-family:DM Sans,sans-serif;z-index:99999;box-shadow:0 6px 20px rgba(16,185,129,0.35);animation:slideUp 0.3s ease';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+
+    // Close modal on backdrop click
+    document.getElementById('edit-modal')?.addEventListener('click', function(e) {
+        if (e.target === this) closeEditModal();
+    });
+
+
+    // ============================================================
+    // COORDINATOR FUNCTIONS
+    // ============================================================
+    async function loadCoordinatorSubmissions() {
+        const container = document.getElementById('coordinator-submissions-container');
+        container.innerHTML = '<div class="no-submissions"><h3>Loading…</h3></div>';
+        const dept = sessionStorage.getItem('pms_coordinator_dept') || '';
+        try {
+            const [subRes, mentorRes] = await Promise.all([
+                fetch(`${API_BASE_URL}/get_submissions.php`),
+                fetch(`${API_BASE_URL}/mentors.php`)
+            ]);
+            const subData    = await subRes.json();
+            const mentorData = await mentorRes.json();
+            if (mentorData.mentors) mentorsCache = mentorData.mentors;
+            if (!subData.success) throw new Error(subData.message);
+            // Filter by coordinator's department if dept is set
+            const filtered = dept
+                ? subData.submissions.filter(s => s.members.some(m => m.department === dept))
+                : subData.submissions;
+            renderCoordinatorSubmissions(filtered, dept);
+        } catch(e) {
+            container.innerHTML = `<div class="no-submissions"><h3>Could not load submissions</h3><p>${e.message}</p></div>`;
+        }
+    }
+
+    function renderCoordinatorSubmissions(submissions, dept) {
+        const container = document.getElementById('coordinator-submissions-container');
+        if (submissions.length === 0) {
+            container.innerHTML = `<div class="no-submissions"><h3>No submissions${dept ? ' for ' + dept : ''}</h3><p>Submissions from students in your department will appear here.</p></div>`;
+            return;
+        }
+        const mentorOptions = mentorsCache.map(m => `<option value="${m.id}">${m.name} (${m.department})</option>`).join('');
+        const sColor = { approved:'#d1fae5', rejected:'#fee2e2', pending:'#fef3c7' };
+        const sText  = { approved:'✅ Approved', rejected:'❌ Rejected', pending:'⏳ Pending' };
+        const sTxt   = { approved:'#065f46', rejected:'#991b1b', pending:'#92400e' };
+        container.innerHTML = `
+            <div style="overflow-x:auto">
+            <table class="submissions-table">
+                <thead><tr>
+                    <th style="width:4%">#</th>
+                    <th style="width:13%">Team Leader</th>
+                    <th style="width:18%">Members</th>
+                    <th style="width:28%">Project Ideas</th>
+                    <th style="width:11%">Selected & Status</th>
+                    <th style="width:13%">Assign Mentor</th>
+                    <th style="width:5%">Date</th>
+                </tr></thead>
+                <tbody>
+                    ${submissions.map((sub, idx) => {
+                        const sel    = sub.selection;
+                        const leader = sub.members.find(m => m.role === 'Team Leader') || sub.members[0];
+                        const s      = sub.status || 'pending';
+                        const assignedMentor = sub.mentor ? mentorsCache.find(m => m.id == sub.mentor.id) : null;
+                        return `<tr>
+                            <td><strong>${idx+1}</strong></td>
+                            <td>
+                                <strong>${leader.name}</strong><br>
+                                <span style="color:var(--muted);font-size:0.82em">${sub.groupEmail}</span>
+                            </td>
+                            <td>
+                                <ul class="member-list">
+                                    ${sub.members.map(m => `<li><strong>${m.name}</strong>${m.role==='Team Leader'?' <em style="color:var(--primary);font-size:0.8em">(Leader)</em>':''}<br><span style="color:#94a3b8;font-size:0.82em">${m.year} – ${m.department}</span></li>`).join('')}
+                                </ul>
+                            </td>
+                            <td>
+                                <ul class="project-list">
+                                    ${sub.projects.map((p,i) => `
+                                        <li>
+                                            <div class="project-title-table">Project ${i+1}: ${p.title}</div>
+                                            <div style="color:var(--muted);font-size:0.85em;margin-bottom:6px">${p.description}</div>
+                                            <button class="select-btn ${sel && sel.index===i?'selected':''}"
+                                                onclick="coordSelectProject(${sub.id},${i},'${p.title.replace(/'/g,"\\'")}')">
+                                                ${sel && sel.index===i?'✓ Selected':'Select'}
+                                            </button>
+                                        </li>`).join('')}
+                                </ul>
+                            </td>
+                            <td>
+                                ${sel ? `
+                                    <span class="selected-badge">Project ${sel.index+1}</span><br><br>
+                                    <select onchange="coordUpdateStatus(${sub.id}, this.value)" style="width:100%;padding:6px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82em;font-family:'DM Sans',sans-serif;cursor:pointer;">
+                                        <option value="pending"  ${(!sub.status||sub.status==='pending') ?'selected':''}>⏳ Pending</option>
+                                        <option value="approved" ${sub.status==='approved'?'selected':''}>✅ Approved</option>
+                                        <option value="rejected" ${sub.status==='rejected'?'selected':''}>❌ Rejected</option>
+                                    </select>
+                                ` : '<span style="color:#94a3b8;font-size:0.85em">No project selected yet</span>'}
+                            </td>
+                            <td>
+                                ${assignedMentor ? `
+                                    <div class="assigned-mentor-badge">👨‍🏫 ${assignedMentor.name}</div>
+                                    <button class="assign-btn" style="margin-top:8px;background:#ef4444" onclick="coordAssignMentor(${sub.id}, '')">Unassign</button>
+                                ` : `
+                                    <select id="coord-mentor-sel-${sub.id}" class="mentor-select">
+                                        <option value="">-- Select Mentor --</option>
+                                        ${mentorOptions}
+                                    </select>
+                                    <button class="assign-btn" onclick="coordAssignMentor(${sub.id}, document.getElementById('coord-mentor-sel-${sub.id}').value)">Assign</button>
+                                `}
+                            </td>
+                            <td style="color:var(--muted);font-size:0.82em">${new Date(sub.timestamp).toLocaleDateString()}</td>
+                        </tr>`;
+                    }).join('')}
+                </tbody>
+            </table></div>`;
+    }
+
+    async function coordSelectProject(submissionId, projectIndex, projectTitle) {
+        try {
+            const res = await fetch(`${API_BASE_URL}/select_project.php`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ submission_id: submissionId, project_index: projectIndex, project_title: projectTitle }) });
+            const result = await res.json();
+            if (result.success) loadCoordinatorSubmissions();
+            else alert('Error: ' + result.message);
+        } catch(e) { alert('Error: ' + e.message); }
+    }
+
+    async function coordUpdateStatus(submissionId, status) {
+        try {
+            const res = await fetch(`${API_BASE_URL}/update_status.php`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ submission_id: submissionId, status }) });
+            const result = await res.json();
+            if (result.success) loadCoordinatorSubmissions();
+            else alert('Error: ' + result.message);
+        } catch(e) { alert('Error: ' + e.message); }
+    }
+
+    async function coordAssignMentor(submissionId, mentorId) {
+        try {
+            const res = await fetch(`${API_BASE_URL}/assign_mentor.php`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ submission_id: submissionId, mentor_id: mentorId || null }) });
+            const result = await res.json();
+            if (result.success) loadCoordinatorSubmissions();
+            else alert('Error assigning mentor.');
+        } catch(e) { alert('Error: ' + e.message); }
+    }
+
+    async function loadCoordinatorMentors() {
+        const container = document.getElementById('coordinator-mentor-list-container');
+        const summaryEl = document.getElementById('coordinator-dept-summary');
+        const dept = sessionStorage.getItem('pms_coordinator_dept') || '';
+        try {
+            const [subRes, mentorRes] = await Promise.all([
+                fetch(`${API_BASE_URL}/get_submissions.php`),
+                fetch(`${API_BASE_URL}/mentors.php`)
+            ]);
+            const subData    = await subRes.json();
+            const mentorData = await mentorRes.json();
+            if (mentorData.mentors) mentorsCache = mentorData.mentors;
+
+            // Filter mentors relevant to this dept
+            const relevantMentors = dept
+                ? mentorsCache.filter(m => m.department === dept || m.department.toLowerCase().includes(dept.toLowerCase()))
+                : mentorsCache;
+
+            container.innerHTML = relevantMentors.length === 0
+                ? '<p style="color:var(--muted);text-align:center;padding:20px">No mentors found for your department.</p>'
+                : relevantMentors.map(m => `
+                    <div class="mentor-list-item">
+                        <div>
+                            <div class="mentor-name">👨‍🏫 ${m.name}</div>
+                            <div class="mentor-dept">${m.department}${m.email ? ' • ' + m.email : ''}</div>
+                        </div>
+                    </div>`).join('');
+
+            // Build dept summary stats
+            const allSubs = subData.success ? subData.submissions : [];
+            const deptSubs = dept ? allSubs.filter(s => s.members.some(m => m.department === dept)) : allSubs;
+            const total    = deptSubs.length;
+            const approved = deptSubs.filter(s => s.status === 'approved').length;
+            const pending  = deptSubs.filter(s => !s.status || s.status === 'pending').length;
+            const rejected = deptSubs.filter(s => s.status === 'rejected').length;
+            const withMentor = deptSubs.filter(s => s.mentor).length;
+            const withSel    = deptSubs.filter(s => s.selection).length;
+
+            const stat = (label, val, bg, tc) => `<div style="background:${bg};border-radius:10px;padding:14px 16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:0.88em;font-weight:600;color:${tc}">${label}</span><span style="font-size:1.3em;font-weight:800;color:${tc}">${val}</span></div>`;
+            summaryEl.innerHTML = `
+                ${stat('Total Submissions', total, '#f1f5f9', '#1e293b')}
+                ${stat('✅ Approved', approved, '#d1fae5', '#065f46')}
+                ${stat('⏳ Pending', pending, '#fef3c7', '#92400e')}
+                ${stat('❌ Rejected', rejected, '#fee2e2', '#991b1b')}
+                ${stat('👨‍🏫 With Mentor', withMentor, '#ede9fe', '#5b21b6')}
+                ${stat('📌 Project Selected', withSel, '#e0f2fe', '#0369a1')}`;
+        } catch(e) {
+            container.innerHTML = `<p style="color:var(--muted)">Could not load mentors.</p>`;
+        }
+    }
+
+    async function exportToExcel() {
+        const btn = document.getElementById('export-btn');
+        const origHTML = btn.innerHTML;
+        btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Exporting…`;
+        btn.style.opacity = '0.75';
+        btn.style.pointerEvents = 'none';
+
+        // Ensure we have data — load it if needed
+        let subs = allSubmissionsCache;
+        if (!subs || subs.length === 0) {
+            try {
+                const res  = await fetch(`${API_BASE_URL}/get_submissions.php`);
+                const data = await res.json();
+                if (data.success) subs = data.submissions;
+            } catch(e) { subs = allSubmissionsCache; }
+        }
+
+        if (!subs || subs.length === 0) {
+            alert('No data to export yet.');
+            btn.innerHTML = origHTML; btn.style.opacity = ''; btn.style.pointerEvents = '';
+            return;
+        }
+
+        const wb = XLSX.utils.book_new();
+
+        // ── Helper: styled header row ──────────────────────────────
+        function makeSheet(headers, rows) {
+            const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+
+            // Column widths
+            ws['!cols'] = headers.map(h => ({ wch: Math.max(h.length + 4, 18) }));
+
+            // Freeze top row
+            ws['!freeze'] = { xSplit: 0, ySplit: 1 };
+
+            return ws;
+        }
+
+        // ── Sheet 1: All Submissions ───────────────────────────────
+        const allHeaders = [
+            '#', 'Group Email', 'Submission Date', 'Status',
+            'Team Leader', 'Leader Year', 'Leader Department',
+            'Member 2', 'M2 Year', 'M2 Dept',
+            'Member 3', 'M3 Year', 'M3 Dept',
+            'Member 4', 'M4 Year', 'M4 Dept',
+            'Project 1 Title', 'Project 1 Desc',
+            'Project 2 Title', 'Project 2 Desc',
+            'Project 3 Title', 'Project 3 Desc',
+            'Selected Project #', 'Selected Project Title',
+            'Assigned Mentor', 'Mentor Department', 'Mentor Email'
+        ];
+
+        const allRows = subs.map((sub, i) => {
+            const members = sub.members || [];
+            const leader  = members.find(m => m.role === 'Team Leader') || members[0] || {};
+            const others  = members.filter(m => m !== leader);
+            const m2 = others[0] || {}; const m3 = others[1] || {}; const m4 = others[2] || {};
+            const projs = sub.projects || [];
+            const p1 = projs[0] || {}; const p2 = projs[1] || {}; const p3 = projs[2] || {};
+            const sel = sub.selection;
+            const mentor = sub.mentor || {};
+            return [
+                i + 1,
+                sub.groupEmail || '',
+                sub.timestamp ? new Date(sub.timestamp).toLocaleString() : '',
+                (sub.status || 'pending').toUpperCase(),
+                leader.name || '',  leader.year || '',  leader.department || '',
+                m2.name || '',      m2.year || '',      m2.department || '',
+                m3.name || '',      m3.year || '',      m3.department || '',
+                m4.name || '',      m4.year || '',      m4.department || '',
+                p1.title || '',     p1.description || '',
+                p2.title || '',     p2.description || '',
+                p3.title || '',     p3.description || '',
+                sel ? sel.index + 1 : '',
+                sel ? sel.title : '',
+                mentor.name || '',  mentor.department || '',  mentor.email || ''
+            ];
+        });
+
+        XLSX.utils.book_append_sheet(wb, makeSheet(allHeaders, allRows), 'All Submissions');
+
+        // ── Sheet 2: By Academic Year ──────────────────────────────
+        const years = ['FE', 'SE', 'TE', 'BE'];
+        const byYearHeaders = ['Year', 'Group Email', 'Team Leader', 'Department', 'Status', 'Selected Project', 'Mentor', 'Submitted'];
+        const byYearRows = [];
+        years.forEach(yr => {
+            const group = subs.filter(s => s.members.some(m => m.year === yr));
+            if (group.length) {
+                byYearRows.push([`── ${yr} (${group.length} submission${group.length > 1 ? 's' : ''}) ──`, '', '', '', '', '', '', '']);
+                group.forEach(sub => {
+                    const leader = sub.members.find(m => m.role === 'Team Leader') || sub.members[0] || {};
+                    byYearRows.push([
+                        yr,
+                        sub.groupEmail || '',
+                        leader.name || '',
+                        leader.department || '',
+                        (sub.status || 'pending').toUpperCase(),
+                        sub.selection ? sub.selection.title : '—',
+                        sub.mentor ? sub.mentor.name : '—',
+                        sub.timestamp ? new Date(sub.timestamp).toLocaleDateString() : ''
+                    ]);
+                });
+            }
+        });
+        XLSX.utils.book_append_sheet(wb, makeSheet(byYearHeaders, byYearRows), 'By Year');
+
+        // ── Sheet 3: By Department ─────────────────────────────────
+        const deptMap = {};
+        subs.forEach(sub => {
+            const leader = sub.members.find(m => m.role === 'Team Leader') || sub.members[0] || {};
+            const dept = leader.department || 'Unknown';
+            if (!deptMap[dept]) deptMap[dept] = [];
+            deptMap[dept].push(sub);
+        });
+
+        const byDeptHeaders = ['Department', 'Group Email', 'Team Leader', 'Year', 'Status', 'Selected Project', 'Mentor', 'Submitted'];
+        const byDeptRows = [];
+        Object.entries(deptMap).sort().forEach(([dept, group]) => {
+            byDeptRows.push([`── ${dept} (${group.length}) ──`, '', '', '', '', '', '', '']);
+            group.forEach(sub => {
+                const leader = sub.members.find(m => m.role === 'Team Leader') || sub.members[0] || {};
+                byDeptRows.push([
+                    dept,
+                    sub.groupEmail || '',
+                    leader.name || '',
+                    leader.year || '',
+                    (sub.status || 'pending').toUpperCase(),
+                    sub.selection ? sub.selection.title : '—',
+                    sub.mentor ? sub.mentor.name : '—',
+                    sub.timestamp ? new Date(sub.timestamp).toLocaleDateString() : ''
+                ]);
+            });
+        });
+        XLSX.utils.book_append_sheet(wb, makeSheet(byDeptHeaders, byDeptRows), 'By Department');
+
+        // ── Sheet 4: Summary Statistics ────────────────────────────
+        const total    = subs.length;
+        const approved = subs.filter(s => s.status === 'approved').length;
+        const pending  = subs.filter(s => !s.status || s.status === 'pending').length;
+        const rejected = subs.filter(s => s.status === 'rejected').length;
+        const withMentor = subs.filter(s => s.mentor).length;
+        const withSelection = subs.filter(s => s.selection).length;
+
+        const summaryData = [
+            ['PROJECT MANAGEMENT SYSTEM — SUMMARY REPORT'],
+            [`Generated on: ${new Date().toLocaleString()}`],
+            [''],
+            ['OVERALL STATISTICS'],
+            ['Total Submissions',    total],
+            ['Approved',             approved],
+            ['Pending',              pending],
+            ['Rejected',             rejected],
+            ['With Mentor Assigned', withMentor],
+            ['Project Selected',     withSelection],
+            [''],
+            ['BY ACADEMIC YEAR', 'Count', 'Approved', 'Pending', 'Rejected'],
+            ...years.map(yr => {
+                const g = subs.filter(s => s.members.some(m => m.year === yr));
+                return [
+                    yr,
+                    g.length,
+                    g.filter(s => s.status === 'approved').length,
+                    g.filter(s => !s.status || s.status === 'pending').length,
+                    g.filter(s => s.status === 'rejected').length
+                ];
+            }),
+            [''],
+            ['BY DEPARTMENT', 'Count', 'Approved', 'Pending', 'Rejected'],
+            ...Object.entries(deptMap).sort().map(([dept, g]) => [
+                dept,
+                g.length,
+                g.filter(s => s.status === 'approved').length,
+                g.filter(s => !s.status || s.status === 'pending').length,
+                g.filter(s => s.status === 'rejected').length
+            ])
+        ];
+
+        const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
+        summaryWs['!cols'] = [{ wch: 30 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }];
+        XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
+
+        // ── Export ─────────────────────────────────────────────────
+        const dateStr = new Date().toISOString().slice(0, 10);
+        XLSX.writeFile(wb, `Project_Submissions_${dateStr}.xlsx`);
+
+        btn.innerHTML = `✅ Exported!`;
+        btn.style.background = 'linear-gradient(135deg,#065f46,#059669)';
+        setTimeout(() => {
+            btn.innerHTML = origHTML;
+            btn.style.background = '';
+            btn.style.opacity = '';
+            btn.style.pointerEvents = '';
+        }, 2000);
+    }
+
+</script>
+<style>
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes slideUp { from { transform: translateY(20px); opacity:0; } to { transform: translateY(0); opacity:1; } }
+</style>
